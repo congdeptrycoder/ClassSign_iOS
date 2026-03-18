@@ -1,12 +1,12 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { View, SafeAreaView, StyleSheet } from 'react-native';
 import { LoginScreen } from './presentation/screens/Login/LoginScreen';
 
 const App = () => {
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <LoginScreen />
-    </SafeAreaView>
+    </View>
   );
 };
 
