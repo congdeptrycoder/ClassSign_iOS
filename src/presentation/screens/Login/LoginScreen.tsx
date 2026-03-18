@@ -34,7 +34,7 @@ export const LoginScreen = () => {
                 <View style={styles.formContainer}>
                     <View style={styles.logoContainer}>
                         <Image
-                            source={require('../../../../assets/image/logo.png')}
+                            source={require('../../../../assets/image/hust-logo.png')}
                             style={styles.logo}
                         />
                     </View>

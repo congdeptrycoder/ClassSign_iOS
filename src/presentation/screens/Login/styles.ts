@@ -24,11 +24,11 @@ export const styles = StyleSheet.create({
     },
     logoContainer: {
         alignItems: 'center',
-        marginBottom: 0,
+        marginBottom: 16,
     },
     logo: {
-        width: 150,
-        height: 150,
+        width: 104,
+        height: 152,
         resizeMode: 'contain',
     },
     description: {
@@ -83,4 +83,3 @@ export const styles = StyleSheet.create({
         textDecorationLine: 'underline',
     },
 });
-
