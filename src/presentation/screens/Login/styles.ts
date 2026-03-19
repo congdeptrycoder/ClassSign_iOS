@@ -1,7 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
-
-
-const { width } = Dimensions.get('window');
+import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
     container: {
@@ -12,8 +9,23 @@ export const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
-        paddingHorizontal: 20,
+    },
+    scrollContent: {
+        flexGrow: 1,
         justifyContent: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 24,
+    },
+    scrollContentLandscape: {
+        paddingHorizontal: 32,
+        paddingVertical: 18,
+    },
+    formContainer: {
+        width: '100%',
+        alignSelf: 'center',
+    },
+    formContainerLandscape: {
+        maxWidth: 560,
     },
     welcomeText: {
         marginTop: 20,
@@ -26,10 +38,17 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 16,
     },
+    logoContainerLandscape: {
+        marginBottom: 10,
+    },
     logo: {
         width: 104,
         height: 152,
         resizeMode: 'contain',
+    },
+    logoLandscape: {
+        width: 84,
+        height: 122,
     },
     description: {
         fontSize: 14,
@@ -39,8 +58,8 @@ export const styles = StyleSheet.create({
         marginBottom: 40,
         fontWeight: '500',
     },
-    formContainer: {
-        width: '100%',
+    descriptionLandscape: {
+        marginBottom: 20,
     },
     input: {
         width: '90%',
@@ -53,11 +72,16 @@ export const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
     },
+    inputLandscape: {
+        width: '100%',
+        maxWidth: 460,
+        marginBottom: 12,
+    },
     loginButton: {
         height: 50,
         width: '40%',
         alignSelf: 'center',
-        backgroundColor: '#FFD700', // Yellow
+        backgroundColor: '#FFD700',
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 10,
@@ -68,8 +92,13 @@ export const styles = StyleSheet.create({
         shadowRadius: 3.84,
         elevation: 5,
     },
+    loginButtonLandscape: {
+        width: '100%',
+        maxWidth: 220,
+        marginTop: 4,
+    },
     loginButtonText: {
-        color: '#8B0000', // Dark red text for contrast
+        color: '#8B0000',
         fontSize: 18,
         fontWeight: 'bold',
     },
