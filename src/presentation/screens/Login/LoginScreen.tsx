@@ -13,17 +13,16 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useLoginViewModel } from './useLoginViewModel';
 import { styles } from './styles';
 
-export const LoginScreen = () => {
-    const { password, setPassword, handleLogin } = useLoginViewModel();
+export const LoginScreen = ({ onLoginSuccess }: { onLoginSuccess?: () => void }) => {
+    const { password, setPassword, handleLogin } = useLoginViewModel(onLoginSuccess);
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
 
     const [nameInput, setNameInput] = useState('');
-    const [name, setName] = useState('');
+    const [] = useState('');
 
     const handlePressLogin = () => {
-        setName(nameInput);
-        handleLogin();
+        handleLogin(nameInput);
     };
 
     return (
@@ -97,7 +96,6 @@ export const LoginScreen = () => {
                             <Text style={styles.loginButtonText}>Dang nhap</Text>
                         </TouchableOpacity>
 
-                        {name ? <Text style={styles.welcomeText}>Chao mung: {name}</Text> : null}
                     </View>
                 </ScrollView>
             </SafeAreaView>
