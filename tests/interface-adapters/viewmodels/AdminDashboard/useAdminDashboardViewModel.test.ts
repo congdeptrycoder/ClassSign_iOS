@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { useAdminDashboardViewModel } from '../../../../src/presentation/screens/AdminDashboard/useAdminDashboardViewModel';
+import { useAdminDashboardViewModel } from '../../../../src/interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
 
 describe('useAdminDashboardViewModel', () => {
   it('toggles profile open state', () => {

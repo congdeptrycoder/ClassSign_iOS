@@ -10,7 +10,7 @@ import {
     useWindowDimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useLoginViewModel } from './useLoginViewModel';
+import { useLoginViewModel } from '../../../interface-adapters/viewmodels/Login/useLoginViewModel';
 import { styles } from './styles';
 
 type LoginScreenProps = {

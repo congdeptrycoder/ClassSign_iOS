@@ -1,67 +1,34 @@
 import { StyleSheet } from 'react-native';
+import { sharedStyles } from '../../components/shared-styles';
 
 export const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#ffffff',
-    },
+    ...sharedStyles,
     navBarHeader: {
-        flexDirection: 'row',
-        height: 60,
-        backgroundColor: '#CC0000',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        zIndex: 10,
+        ...sharedStyles.navBarHeader,
     },
     logo: {
-        width: 100,
-        height: 40,
+        ...sharedStyles.logo,
     },
     avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#FFF',
+        ...sharedStyles.avatar,
     },
     userInfoBox: {
-        position: 'absolute',
-        top: 70,
-        right: 15,
-        backgroundColor: '#FFF',
-        padding: 15,
-        borderRadius: 8,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        zIndex: 20,
-        alignItems: 'center',
+        ...sharedStyles.userInfoBox,
     },
     userInfoText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        color: '#333',
+        ...sharedStyles.userInfoText,
     },
     logoutButton: {
-        backgroundColor: '#F00',
-        paddingVertical: 6,
-        paddingHorizontal: 15,
-        borderRadius: 4,
+        ...sharedStyles.logoutButton,
     },
     logoutButtonText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-        fontSize: 12,
+        ...sharedStyles.logoutButtonText,
     },
     scrollContent: {
-        padding: 16,
-        paddingBottom: 40,
+        ...sharedStyles.scrollContent,
     },
     warningText: {
-        color: '#d9534f',
+        color: '#83b13e',
         fontSize: 16,
         fontWeight: 'bold',
         textAlign: 'center',
@@ -73,7 +40,7 @@ export const styles = StyleSheet.create({
         marginBottom: 16,
     },
     uploadBtn: {
-        backgroundColor: '#5bc0de',
+        backgroundColor: '#f0ce09',
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 4,
@@ -119,7 +86,7 @@ export const styles = StyleSheet.create({
         color: '#333',
     },
     searchBtn: {
-        backgroundColor: '#0275d8',
+        backgroundColor: '#8B0000',
         padding: 10,
         borderRadius: 4,
         alignItems: 'center',

@@ -1,8 +1,10 @@
 import { StyleSheet } from 'react-native';
+import { sharedStyles } from '../../components/shared-styles';
 
 export const styles = StyleSheet.create({
+    ...sharedStyles,
     container: {
-        flex: 1,
+        ...sharedStyles.container,
     },
     gradientContainer: {
         flex: 1,

@@ -7,9 +7,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { ClassInfo } from '../AdminDashboard/useAdminDashboardViewModel';
+import { ClassInfo } from '../../../interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
 import { styles } from './styles';
-import { useAdminEditClassViewModel } from './useAdminEditClassViewModel';
+import { useAdminEditClassViewModel } from '../../../interface-adapters/viewmodels/AdminEditClass/useAdminEditClassViewModel';
 
 type AdminEditClassScreenProps = {
     onGoBack: () => void;

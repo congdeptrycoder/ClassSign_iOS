@@ -1,10 +1,8 @@
 import { StyleSheet } from 'react-native';
+import { sharedStyles } from '../../components/shared-styles';
 
 export const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
+    ...sharedStyles,
     header: {
         padding: 16,
         borderBottomWidth: 1,
@@ -28,8 +26,7 @@ export const styles = StyleSheet.create({
         flexShrink: 1,
     },
     scrollContent: {
-        padding: 16,
-        paddingBottom: 40,
+        ...sharedStyles.scrollContent,
     },
     inputGroup: {
         marginBottom: 16,

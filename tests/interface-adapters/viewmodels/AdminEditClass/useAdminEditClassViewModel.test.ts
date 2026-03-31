@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { useAdminEditClassViewModel } from '../../../../src/presentation/screens/AdminEditClass/useAdminEditClassViewModel';
+import { useAdminEditClassViewModel } from '../../../../src/interface-adapters/viewmodels/AdminEditClass/useAdminEditClassViewModel';
 
 describe('useAdminEditClassViewModel', () => {
   it('updates form values correctly', () => {

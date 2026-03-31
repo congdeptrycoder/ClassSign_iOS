@@ -12,7 +12,7 @@ import {
     RegisteredSubject,
     TimeEvent,
     useStudentDashboardViewModel,
-} from './useStudentDashboardViewModel';
+} from '../../../interface-adapters/viewmodels/StudentDashboard/useStudentDashboardViewModel';
 import { styles } from './styles';
 
 type StudentDashboardScreenProps = {
@@ -43,13 +43,13 @@ export const StudentDashboardScreen = ({
             <View style={styles.container}>
                 <View style={styles.navBarHeader} testID="nav-bar-header">
                     <Image
-                        source={require('../../../../assets/image/hust-logo.png')}
+                            source={require('../../../../assets/image/hust-logo.png')}
                         style={styles.logo}
                         resizeMode="contain"
                     />
                     <TouchableOpacity onPress={toggleUserInfo}>
                         <Image
-                            source={require('../../../../assets/image/hust-logo.png')}
+                                source={require('../../../../assets/image/hust-logo.png')}
                             style={styles.avatar}
                             resizeMode="contain"
                         />

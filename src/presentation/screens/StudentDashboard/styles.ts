@@ -1,67 +1,35 @@
 import { Dimensions, StyleSheet } from 'react-native';
+import { sharedStyles } from '../../components/shared-styles';
 
 const { width } = Dimensions.get('window');
 const gridColumnWidth = Math.max((width - 90) / 7, 60);
 
 export const styles = StyleSheet.create({
+    ...sharedStyles,
     safeArea: {
         flex: 1,
         backgroundColor: '#FFFFFF',
     },
-    container: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
     navBarHeader: {
-        flexDirection: 'row',
-        height: 60,
-        backgroundColor: '#CC0000',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        zIndex: 10,
+        ...sharedStyles.navBarHeader,
     },
     logo: {
-        width: 100,
-        height: 40,
+        ...sharedStyles.logo,
     },
     avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#FFF',
+        ...sharedStyles.avatar,
     },
     userInfoBox: {
-        position: 'absolute',
-        top: 70,
-        right: 15,
-        backgroundColor: '#FFF',
-        padding: 15,
-        borderRadius: 8,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        zIndex: 20,
-        alignItems: 'center',
+        ...sharedStyles.userInfoBox,
     },
     userInfoText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        color: '#333',
+        ...sharedStyles.userInfoText,
     },
     logoutButton: {
-        backgroundColor: '#F00',
-        paddingVertical: 6,
-        paddingHorizontal: 15,
-        borderRadius: 4,
+        ...sharedStyles.logoutButton,
     },
     logoutButtonText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-        fontSize: 12,
+        ...sharedStyles.logoutButtonText,
     },
     contentContainer: {
         flex: 1,
@@ -70,12 +38,12 @@ export const styles = StyleSheet.create({
     whatTimeIsIt: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#CC0000',
+        color: '#8dca1a',
         textAlign: 'center',
         marginVertical: 15,
     },
     actionButton: {
-        backgroundColor: '#0055A4',
+        backgroundColor: '#ceb10e',
         paddingVertical: 12,
         borderRadius: 6,
         alignItems: 'center',
@@ -98,7 +66,7 @@ export const styles = StyleSheet.create({
         color: '#333',
     },
     registerButton: {
-        backgroundColor: '#28A745',
+        backgroundColor: '#8B0000',
         paddingVertical: 12,
         borderRadius: 6,
         alignItems: 'center',

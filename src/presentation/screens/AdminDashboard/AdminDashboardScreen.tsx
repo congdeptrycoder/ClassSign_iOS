@@ -14,7 +14,7 @@ import { styles } from './styles';
 import {
     ClassInfo,
     useAdminDashboardViewModel,
-} from './useAdminDashboardViewModel';
+} from '../../../interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
 
 type AdminDashboardScreenProps = {
     onLogout: () => void;
