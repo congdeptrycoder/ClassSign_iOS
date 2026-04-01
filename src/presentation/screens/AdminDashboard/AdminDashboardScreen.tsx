@@ -10,11 +10,12 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { styles } from './styles';
 import {
     ClassInfo,
     useAdminDashboardViewModel,
 } from '../../../interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
+import { useTheme } from '../../components/ThemeContext';
+import { createAdminStyles } from './styles';
 
 type AdminDashboardScreenProps = {
     onLogout: () => void;
@@ -74,6 +75,9 @@ export const AdminDashboardScreen = ({
         handleSelectDepartment,
     } = useAdminDashboardViewModel(onNavigateToEdit, onLogout);
 
+    const { colors } = useTheme();
+    const styles = createAdminStyles(colors);
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.navBarHeader} testID="nav-bar-header">
@@ -118,7 +122,7 @@ export const AdminDashboardScreen = ({
                         placeholder="Nhập thông tin tìm kiếm..."
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-                        placeholderTextColor="#777"
+                        placeholderTextColor={colors.textSecondary}
                     />
 
                     <View style={styles.filtersRow}>

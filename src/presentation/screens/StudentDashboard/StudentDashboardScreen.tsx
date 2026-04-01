@@ -13,7 +13,8 @@ import {
     TimeEvent,
     useStudentDashboardViewModel,
 } from '../../../interface-adapters/viewmodels/StudentDashboard/useStudentDashboardViewModel';
-import { styles } from './styles';
+import { useTheme } from '../../components/ThemeContext';
+import { createStudentStyles } from './styles';
 
 type StudentDashboardScreenProps = {
     onLogout: () => void;
@@ -37,6 +38,9 @@ export const StudentDashboardScreen = ({
         registeredSubjects,
         timeGridEvents,
     } = useStudentDashboardViewModel(onLogout);
+
+    const { colors } = useTheme();
+    const styles = createStudentStyles(colors);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -92,7 +96,7 @@ export const StudentDashboardScreen = ({
                         placeholder="Nhập mã/tên học phần"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-                        placeholderTextColor="#999"
+                        placeholderTextColor={colors.textSecondary}
                     />
 
                     <TouchableOpacity

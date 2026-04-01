@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useLoginViewModel } from '../../../interface-adapters/viewmodels/Login/useLoginViewModel';
-import { styles } from './styles';
+import { useTheme } from '../../components/ThemeContext';
+import { createLoginStyles } from './styles';
 
 type LoginScreenProps = {
     onLoginSuccess?: (role: string) => void;
@@ -22,6 +23,10 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
 
+    const { isDark, toggleTheme, colors } = useTheme();
+    // Memo-ize styles dựa trên colors để tránh tạo lại không cần thiết
+    const styles = createLoginStyles(colors);
+
     const [usernameInput, setUsernameInput] = useState('');
 
     const handlePressLogin = () => {
@@ -30,10 +35,23 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
 
     return (
         <LinearGradient
-            colors={['#8B0000', '#FF4D4D']}
+            colors={colors.loginGradient}
             style={styles.gradientContainer}
         >
             <SafeAreaView style={styles.safeArea}>
+                {/* ── Nút Toggle Dark/Light Mode ─────────────────────── */}
+                <TouchableOpacity
+                    style={styles.themeToggleBtn}
+                    onPress={toggleTheme}
+                    testID="theme-toggle-btn"
+                    accessibilityLabel={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+                >
+                    <Text style={{ fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
+                    <Text style={styles.themeToggleText}>
+                        {isDark ? 'Giao diện Sáng' : 'Giao diện Tối'}
+                    </Text>
+                </TouchableOpacity>
+
                 <ScrollView
                     contentContainerStyle={[
                         styles.scrollContent,
@@ -77,7 +95,7 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
                             value={usernameInput}
                             onChangeText={setUsernameInput}
                             autoCapitalize="none"
-                            placeholderTextColor="#666"
+                            placeholderTextColor={colors.textSecondary}
                         />
 
                         <TextInput
@@ -86,7 +104,7 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
-                            placeholderTextColor="#666"
+                            placeholderTextColor={colors.textSecondary}
                         />
 
                         <TouchableOpacity
@@ -98,7 +116,6 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
                         >
                             <Text style={styles.loginButtonText}>Đăng nhập</Text>
                         </TouchableOpacity>
-
                     </View>
                 </ScrollView>
             </SafeAreaView>

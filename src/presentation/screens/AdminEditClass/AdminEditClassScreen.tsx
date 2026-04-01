@@ -8,8 +8,9 @@ import {
     View,
 } from 'react-native';
 import { ClassInfo } from '../../../interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
-import { styles } from './styles';
 import { useAdminEditClassViewModel } from '../../../interface-adapters/viewmodels/AdminEditClass/useAdminEditClassViewModel';
+import { useTheme } from '../../components/ThemeContext';
+import { createAdminEditStyles } from './styles';
 
 type AdminEditClassScreenProps = {
     onGoBack: () => void;
@@ -43,6 +44,9 @@ export const AdminEditClassScreen = ({
     const { formValues, handleInputChange, handleSave, handleGoBack } =
         useAdminEditClassViewModel(onGoBack, initialData);
 
+    const { colors } = useTheme();
+    const styles = createAdminEditStyles(colors);
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -60,6 +64,7 @@ export const AdminEditClassScreen = ({
                             style={styles.input}
                             value={formValues[field.key]}
                             onChangeText={text => handleInputChange(field.key, text)}
+                            placeholderTextColor={colors.textSecondary}
                         />
                     </View>
                 ))}
