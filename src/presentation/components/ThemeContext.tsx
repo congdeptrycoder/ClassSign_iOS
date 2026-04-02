@@ -74,12 +74,7 @@ export const darkColors: ThemeColors = {
 };
 
 // ─── Context ───────────────────────────────────────────────────────────────────
-const ThemeContext = createContext<ThemeContextValue>({
-    theme: 'light',
-    isDark: false,
-    colors: lightColors,
-    toggleTheme: () => {},
-});
+const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 // ─── Provider ──────────────────────────────────────────────────────────────────
 interface ThemeProviderProps {
