@@ -67,6 +67,13 @@ yarn-error.log
 # Temporary files created by Metro to check the health of the file watcher
 .metro-health-check*
 
+# Environment variables (chứa IP máy Mac - không commit)
+.env
+.env.local
+
+# Server logs
+server/logs/
+
 # testing
 /coverage
 

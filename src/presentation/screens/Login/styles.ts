@@ -80,7 +80,7 @@ export const createLoginStyles = (colors: ThemeColors) =>
         descriptionLandscape: {
             marginBottom: 20,
         },
-        // ── Input ───────────────────────────────────────────────────────
+        // ── Input (deprecated, dùng inputWrapper + inputInner thay thế) ──
         input: {
             width: '90%',
             alignSelf: 'center',
@@ -98,6 +98,34 @@ export const createLoginStyles = (colors: ThemeColors) =>
             width: '100%',
             maxWidth: 460,
             marginBottom: 12,
+        },
+        // ── Input Wrapper (Animated.View bao quanh) ────────────────────
+        inputWrapper: {
+            width: '90%',
+            alignSelf: 'center',
+            height: 50,
+            backgroundColor: colors.inputBackground,
+            marginBottom: 15,
+            borderRadius: 10,
+            borderWidth: 3,
+            borderColor: colors.inputBorder,
+            justifyContent: 'center',
+        },
+        inputWrapperLandscape: {
+            width: '100%',
+            maxWidth: 460,
+            marginBottom: 12,
+        },
+        // ── Input Inner (TextInput bên trong Wrapper) ──────────────────
+        inputInner: {
+            flex: 1,
+            paddingHorizontal: 15,
+            fontSize: 16,
+            color: colors.inputText,
+            borderWidth: 0,
+        },
+        inputInnerLandscape: {
+            // Kế thừa từ inputInner, không cần thêm
         },
         // ── Button đăng nhập ────────────────────────────────────────────
         loginButton: {
@@ -120,9 +148,26 @@ export const createLoginStyles = (colors: ThemeColors) =>
             maxWidth: 220,
             marginTop: 4,
         },
+        loginButtonDisabled: {
+            opacity: 0.6,
+        },
         loginButtonText: {
             color: colors.buttonSecondaryText,
             fontSize: 18,
             fontWeight: 'bold',
+        },
+        // ── Thông báo lỗi ────────────────────────────────────────────────
+        errorText: {
+            color: '#ffffff',
+            fontSize: 13,
+            textAlign: 'center',
+            marginBottom: 8,
+            backgroundColor: '#FFD700',
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 8,
+            alignSelf: 'center',
+            width: '90%',
+            fontWeight: '500',
         },
     });

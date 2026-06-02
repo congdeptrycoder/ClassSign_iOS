@@ -1,28 +1,51 @@
 import { useState } from 'react';
+import { LoginUseCase } from '../../../application/use-cases/LoginUseCase';
+import { loginUseCase as defaultLoginUseCase } from '../../../di/container';
 
-export const useLoginViewModel = (onLoginSuccess?: (role: string) => void) => {
+/**
+ * ViewModel cho màn hình đăng nhập.
+ *
+ * Tuân thủ MVVM: chỉ quản lý UI state và gọi UseCase,
+ * không chứa business logic.
+ *
+ * Tuân thủ DIP: nhận LoginUseCase qua parameter (dễ mock trong test).
+ */
+export const useLoginViewModel = (
+    onLoginSuccess?: (role: string) => void,
+    loginUseCaseDep: LoginUseCase = defaultLoginUseCase
+) => {
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [account, setAccount] = useState<{ role: string } | null>(null);
 
-    const handleLogin = (currentUsername: string) => {
-        if (currentUsername === 'admin' && password === '1') {
-            onLoginSuccess?.('admin');
-            return;
+    const handleLogin = async (currentUsername: string) => {
+        setError(null);
+        setIsLoading(true);
+        setAccount(null);
+
+        try {
+            const acc = await loginUseCaseDep.execute(currentUsername, password);
+            setAccount(acc);
+            // Không gọi onLoginSuccess ở đây, để component xử lý after animation
+        } catch (err) {
+            const message =
+                err instanceof Error
+                    ? err.message
+                    : 'Đăng nhập thất bại. Vui lòng thử lại.';
+            setError(message);
+            console.error('[LoginViewModel] Lỗi đăng nhập:', message);
+        } finally {
+            setIsLoading(false);
         }
-
-        if (currentUsername === 'user' && password === '1') {
-            onLoginSuccess?.('student');
-            return;
-        }
-
-        console.log('Login attempt with:', {
-            username: currentUsername,
-            password,
-        });
     };
 
     return {
         password,
         setPassword,
         handleLogin,
+        isLoading,
+        error,
+        account,
     };
 };

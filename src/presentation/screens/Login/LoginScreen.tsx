@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
+    ActivityIndicator,
+    Animated,
     Image,
     SafeAreaView,
     ScrollView,
@@ -19,15 +21,86 @@ type LoginScreenProps = {
 };
 
 export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
-    const { password, setPassword, handleLogin } = useLoginViewModel(onLoginSuccess);
+    const { password, setPassword, handleLogin, isLoading, error, account } = useLoginViewModel(onLoginSuccess);
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
 
     const { isDark, toggleTheme, colors } = useTheme();
-    // Memo-ize styles dựa trên colors để tránh tạo lại không cần thiết
     const styles = createLoginStyles(colors);
 
     const [usernameInput, setUsernameInput] = useState('');
+
+    // Animation values cho viền và nền input
+    const usernameColorAnim = useRef(new Animated.Value(0)).current;
+    const passwordColorAnim = useRef(new Animated.Value(0)).current;
+    const usernameBackgroundAnim = useRef(new Animated.Value(0)).current;
+    const passwordBackgroundAnim = useRef(new Animated.Value(0)).current;
+
+    // Xử lý animation khi đăng nhập thành công
+    useEffect(() => {
+        if (account && !isLoading) {
+            playSuccessAnimation(account.role);
+        }
+    }, [account, isLoading]);
+
+    const playSuccessAnimation = (role: string) => {
+        // Animation 1: Username - viền + nền chuyển sang xanh lá (0.5s)
+        Animated.parallel([
+            Animated.timing(usernameColorAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: false,
+            }),
+            Animated.timing(usernameBackgroundAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: false,
+            }),
+        ]).start(() => {
+            // Animation 2: Password - viền + nền chuyển sang xanh lá (0.5s)
+            Animated.parallel([
+                Animated.timing(passwordColorAnim, {
+                    toValue: 1,
+                    duration: 500,
+                    useNativeDriver: false,
+                }),
+                Animated.timing(passwordBackgroundAnim, {
+                    toValue: 1,
+                    duration: 500,
+                    useNativeDriver: false,
+                }),
+            ]).start(() => {
+                // Sau khi animation xong, gọi onLoginSuccess để chuyển sang giao diện role
+                // Reset animations cho lần đăng nhập tiếp theo
+                usernameColorAnim.setValue(0);
+                passwordColorAnim.setValue(0);
+                usernameBackgroundAnim.setValue(0);
+                passwordBackgroundAnim.setValue(0);
+                onLoginSuccess?.(role);
+            });
+        });
+    };
+
+    // Interpolate animation values thành màu viền và nền
+    const usernameBorderColor = usernameColorAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [colors.inputBorder, '#8ffa1d'], // từ màu ban đầu sang xanh lá
+    });
+
+    const passwordBorderColor = passwordColorAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [colors.inputBorder, '#8ffa1d'], // từ màu ban đầu sang xanh lá
+    });
+
+    const usernameBackgroundColor = usernameBackgroundAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [colors.inputBackground, '#6faa45'], // từ màu ban đầu sang xanh lá cây nhạt
+    });
+
+    const passwordBackgroundColor = passwordBackgroundAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [colors.inputBackground, '#6faa45'], // từ màu ban đầu sang xanh lá cây nhạt
+    });
 
     const handlePressLogin = () => {
         handleLogin(usernameInput);
@@ -89,32 +162,66 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
                             Hệ thống đăng ký học tập tiện lợi
                         </Text>
 
-                        <TextInput
-                            style={[styles.input, isLandscape && styles.inputLandscape]}
-                            placeholder="Tài khoản"
-                            value={usernameInput}
-                            onChangeText={setUsernameInput}
-                            autoCapitalize="none"
-                            placeholderTextColor={colors.textSecondary}
-                        />
+                        {/* ── Input Tài khoản với animation ─────────────────── */}
+                        <Animated.View
+                            style={[
+                                styles.inputWrapper,
+                                isLandscape && styles.inputWrapperLandscape,
+                                {
+                                    borderColor: usernameBorderColor,
+                                    backgroundColor: usernameBackgroundColor,
+                                },
+                            ]}
+                        >
+                            <TextInput
+                                style={[styles.inputInner, isLandscape && styles.inputInnerLandscape]}
+                                placeholder="Tài khoản"
+                                value={usernameInput}
+                                onChangeText={setUsernameInput}
+                                autoCapitalize="none"
+                                placeholderTextColor={colors.textSecondary}
+                            />
+                        </Animated.View>
 
-                        <TextInput
-                            style={[styles.input, isLandscape && styles.inputLandscape]}
-                            placeholder="Mật khẩu"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                            placeholderTextColor={colors.textSecondary}
-                        />
+                        {/* ── Input Mật khẩu với animation ─────────────────── */}
+                        <Animated.View
+                            style={[
+                                styles.inputWrapper,
+                                isLandscape && styles.inputWrapperLandscape,
+                                {
+                                    borderColor: passwordBorderColor,
+                                    backgroundColor: passwordBackgroundColor,
+                                },
+                            ]}
+                        >
+                            <TextInput
+                                style={[styles.inputInner, isLandscape && styles.inputInnerLandscape]}
+                                placeholder="Mật khẩu"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry
+                                placeholderTextColor={colors.textSecondary}
+                            />
+                        </Animated.View>
+
+                        {error !== null && (
+                            <Text style={styles.errorText}>{error}</Text>
+                        )}
 
                         <TouchableOpacity
                             style={[
                                 styles.loginButton,
                                 isLandscape && styles.loginButtonLandscape,
+                                isLoading && styles.loginButtonDisabled,
                             ]}
                             onPress={handlePressLogin}
+                            disabled={isLoading}
                         >
-                            <Text style={styles.loginButtonText}>Đăng nhập</Text>
+                            {isLoading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.loginButtonText}>Đăng nhập</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
