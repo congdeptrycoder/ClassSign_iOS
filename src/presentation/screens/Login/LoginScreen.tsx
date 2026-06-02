@@ -9,7 +9,7 @@ import {
     View,
     useWindowDimensions,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLoginViewModel } from '../../../interface-adapters/viewmodels/Login/useLoginViewModel';
 import { useTheme } from '../../components/ThemeContext';
 import { createLoginStyles } from './styles';
@@ -46,7 +46,7 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
                     testID="theme-toggle-btn"
                     accessibilityLabel={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
                 >
-                    <Text style={{ fontSize: 16 }}>{isDark ? '☀️' : '🌙'}</Text>
+                    <Text style={styles.themeToggleIcon}>{isDark ? '☀️' : '🌙'}</Text>
                     <Text style={styles.themeToggleText}>
                         {isDark ? 'Giao diện Sáng' : 'Giao diện Tối'}
                     </Text>

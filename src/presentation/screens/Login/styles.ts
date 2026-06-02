@@ -32,6 +32,9 @@ export const createLoginStyles = (colors: ThemeColors) =>
             fontWeight: 'bold',
             marginLeft: 4,
         },
+        themeToggleIcon: {
+            fontSize: 16,
+        },
         // ── Layout ──────────────────────────────────────────────────────
         scrollContent: {
             flexGrow: 1,

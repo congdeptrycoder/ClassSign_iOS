@@ -74,7 +74,12 @@ export const darkColors: ThemeColors = {
 };
 
 // ─── Context ───────────────────────────────────────────────────────────────────
-const ThemeContext = createContext<ThemeContextValue | null>(null);
+const ThemeContext = createContext<ThemeContextValue>({
+    theme: 'light',
+    isDark: false,
+    colors: lightColors,
+    toggleTheme: () => {},
+});
 
 // ─── Provider ──────────────────────────────────────────────────────────────────
 interface ThemeProviderProps {
@@ -112,11 +117,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
  * Ném lỗi nếu dùng ngoài ThemeProvider để tránh bug khó debug.
  */
 export const useTheme = (): ThemeContextValue => {
-    const context = useContext(ThemeContext);
-    if (!context) {
-        throw new Error('useTheme must be used within a ThemeProvider');
-    }
-    return context;
+    return useContext(ThemeContext);
 };
 
 export default ThemeContext;

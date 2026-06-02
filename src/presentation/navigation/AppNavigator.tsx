@@ -5,8 +5,10 @@ import { StudentDashboardScreen } from '../screens/StudentDashboard/StudentDashb
 import { AdminDashboardScreen } from '../screens/AdminDashboard/AdminDashboardScreen';
 import { AdminEditClassScreen } from '../screens/AdminEditClass/AdminEditClassScreen';
 import { ClassInfo } from '../../interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
+import { useTheme } from '../components/ThemeContext';
 
 export const AppNavigator = () => {
+    const { colors } = useTheme();
     const [currentScreen, setCurrentScreen] = useState<
         'Login' | 'StudentDashboard' | 'AdminDashboard' | 'AdminEditClass'
     >('Login');
@@ -26,7 +28,7 @@ export const AppNavigator = () => {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {currentScreen === 'Login' && (
                 <LoginScreen onLoginSuccess={handleLoginSuccess} />
             )}
@@ -55,6 +57,5 @@ export const AppNavigator = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
 });

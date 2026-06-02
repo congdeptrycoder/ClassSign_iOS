@@ -236,4 +236,58 @@ export const createStudentStyles = (colors: ThemeColors) =>
             fontWeight: 'bold',
         },
         bottomSpacer: { height: 40 },
+        // ── Gợi ý học phần (Suggestions Dropdown) ────────────────────────────────────
+        suggestionsContainer: {
+            backgroundColor: colors.surface,
+            borderColor: colors.inputBorder,
+            borderWidth: 1,
+            borderRadius: 6,
+            marginTop: -10,
+            marginBottom: 15,
+            maxHeight: 180,
+            overflow: 'hidden',
+            zIndex: 30,
+            elevation: 3,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.2,
+            shadowRadius: 1.41,
+        },
+        suggestionItem: {
+            padding: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.separator,
+        },
+        suggestionText: {
+            fontSize: 14,
+            color: colors.text,
+        },
+        // ── Trạng thái đóng đăng ký (No active phase notice) ─────────────────────────
+        noPhaseContainer: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 50,
+            paddingHorizontal: 20,
+            backgroundColor: colors.surface,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: colors.tableBorder,
+            marginTop: 20,
+        },
+        noPhaseIcon: {
+            fontSize: 48,
+            marginBottom: 15,
+        },
+        noPhaseTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: colors.text,
+            textAlign: 'center',
+            marginBottom: 10,
+        },
+        noPhaseSubText: {
+            fontSize: 14,
+            color: colors.textSecondary,
+            textAlign: 'center',
+        },
     });

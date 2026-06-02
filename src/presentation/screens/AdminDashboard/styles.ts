@@ -212,4 +212,126 @@ export const createAdminStyles = (colors: ThemeColors) =>
             color: colors.text,
             textAlign: 'center',
         },
+        // ── Thiết lập giai đoạn đăng ký (Registration Phase Setup) ────
+        phaseSetupContainer: {
+            backgroundColor: colors.surface,
+            padding: 16,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: colors.tableBorder,
+            marginBottom: 20,
+        },
+        phaseFormGroup: {
+            marginBottom: 12,
+        },
+        phaseLabel: {
+            fontSize: 14,
+            fontWeight: 'bold',
+            color: colors.text,
+            marginBottom: 6,
+        },
+        phaseTextInput: {
+            borderWidth: 1,
+            borderColor: colors.inputBorder,
+            borderRadius: 4,
+            padding: 10,
+            backgroundColor: colors.inputBackground,
+            color: colors.inputText,
+            fontSize: 14,
+        },
+        phaseRadioGroup: {
+            flexDirection: 'row',
+            gap: 10,
+            marginBottom: 6,
+        },
+        phaseRadioButton: {
+            flex: 1,
+            borderWidth: 1,
+            borderColor: colors.inputBorder,
+            borderRadius: 4,
+            paddingVertical: 10,
+            alignItems: 'center',
+            backgroundColor: colors.inputBackground,
+        },
+        phaseRadioButtonActive: {
+            backgroundColor: colors.buttonSecondary,
+            borderColor: colors.buttonSecondary,
+        },
+        phaseRadioText: {
+            color: colors.text,
+            fontSize: 13,
+            fontWeight: '600',
+        },
+        phaseRadioTextActive: {
+            color: colors.buttonSecondaryText,
+            fontSize: 13,
+            fontWeight: 'bold',
+        },
+        phaseButtonsRow: {
+            flexDirection: 'row',
+            gap: 10,
+            marginTop: 8,
+        },
+        savePhaseBtn: {
+            flex: 2,
+            backgroundColor: colors.buttonPrimary,
+            paddingVertical: 12,
+            borderRadius: 4,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        savePhaseBtnText: {
+            color: colors.buttonPrimaryText,
+            fontWeight: 'bold',
+            fontSize: 14,
+        },
+        cancelPhaseBtn: {
+            flex: 1,
+            backgroundColor: '#aaaaaa',
+            paddingVertical: 12,
+            borderRadius: 4,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        cancelPhaseBtnText: {
+            color: '#ffffff',
+            fontWeight: 'bold',
+            fontSize: 14,
+        },
+        phaseTableTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: colors.text,
+            marginTop: 15,
+            marginBottom: 10,
+        },
+        statusCell: {
+            fontWeight: 'bold',
+        },
+        statusOpen: {
+            color: '#4caf50', // Màu xanh lá cho ĐANG MỞ
+        },
+        statusClosed: {
+            color: '#f44336', // Màu đỏ cho ĐÃ ĐÓNG
+        },
+        timeCell: {
+            width: 200,
+        },
+        typeCell: {
+            width: 120,
+        },
+        statusLabelCell: {
+            width: 100,
+        },
+        phaseActionCell: {
+            width: 120,
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            alignItems: 'center',
+        },
+        divider: {
+            height: 2,
+            backgroundColor: colors.separator,
+            marginVertical: 20,
+        },
     });

@@ -1,5 +1,9 @@
 import { Alert } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
+import { RegistrationPhaseRepositoryImpl } from '../../../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
+import { ManageRegistrationPhases } from '../../../application/use-cases/ManageRegistrationPhases';
+import { logMessage } from '../../../shared/utils/logger';
 
 export interface ClassInfo {
     ky: string;
@@ -91,6 +95,26 @@ export const useAdminDashboardViewModel = (
         },
     ]);
 
+    // ── Giai đoạn đăng ký (Phases) states ────────────────────────────────────
+    const [phases, setPhases] = useState<RegistrationPhase[]>([]);
+    const [phaseType, setPhaseType] = useState<'course' | 'class'>('course');
+    const [startTime, setStartTime] = useState('');
+    const [endTime, setEndTime] = useState('');
+    const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
+
+    const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
+    const managePhasesUseCase = new ManageRegistrationPhases(phaseRepository);
+
+    // Subscribe vào phase repository (Observer Pattern)
+    useEffect(() => {
+        const unsubscribe = phaseRepository.subscribe(updatedPhases => {
+            setPhases(updatedPhases);
+        });
+        return () => {
+            unsubscribe();
+        };
+    }, [phaseRepository]);
+
     const toggleProfile = () => {
         setIsProfileOpen(currentValue => !currentValue);
     };
@@ -145,6 +169,87 @@ export const useAdminDashboardViewModel = (
         setDeptModalOpen(false);
     };
 
+    // ── Giai đoạn đăng ký (Phases) actions ───────────────────────────────────
+    const handleSavePhase = () => {
+        logMessage('INFO', `Lưu giai đoạn thiết lập: type=${phaseType}, start=${startTime}, end=${endTime}, editId=${editingPhaseId}`);
+        try {
+            if (editingPhaseId) {
+                // Update phase
+                managePhasesUseCase.updatePhase({
+                    id: editingPhaseId,
+                    type: phaseType,
+                    startTime,
+                    endTime
+                });
+                logMessage('INFO', `Cập nhật giai đoạn đăng ký thành công: ID=${editingPhaseId}`);
+                Alert.alert('Thành công', 'Đã cập nhật thiết lập giai đoạn đăng ký thành công.');
+            } else {
+                // Create phase
+                const newPhase = managePhasesUseCase.addPhase({
+                    type: phaseType,
+                    startTime,
+                    endTime
+                });
+                logMessage('INFO', `Thêm giai đoạn đăng ký mới thành công: ID=${newPhase.id}`);
+                Alert.alert('Thành công', 'Đã thiết lập giai đoạn đăng ký thành công.');
+            }
+            // Clear form
+            resetPhaseForm();
+        } catch (error: any) {
+            const errorMsg = error.message || 'Lỗi khi lưu giai đoạn thiết lập';
+            logMessage('ERROR', `Lưu giai đoạn thất bại: ${errorMsg}`);
+            Alert.alert('Lỗi', errorMsg);
+        }
+    };
+
+    const handleEditPhase = (phase: RegistrationPhase) => {
+        logMessage('INFO', `Bắt đầu sửa giai đoạn: ID=${phase.id}`);
+        setEditingPhaseId(phase.id);
+        setPhaseType(phase.type);
+        setStartTime(phase.startTime);
+        setEndTime(phase.endTime);
+    };
+
+    const handleDeletePhase = (id: string) => {
+        logMessage('INFO', `Yêu cầu xoá giai đoạn: ID=${id}`);
+        Alert.alert(
+            'Xác nhận xoá',
+            'Bạn có chắc chắn muốn xoá thiết lập giai đoạn đăng ký này?',
+            [
+                { text: 'Huỷ', style: 'cancel' },
+                {
+                    text: 'Xoá',
+                    style: 'destructive',
+                    onPress: () => {
+                        try {
+                            managePhasesUseCase.deletePhase(id);
+                            logMessage('INFO', `Đã xoá giai đoạn thành công: ID=${id}`);
+                            Alert.alert('Thành công', 'Đã xoá thiết lập giai đoạn đăng ký.');
+                            if (editingPhaseId === id) {
+                                resetPhaseForm();
+                            }
+                        } catch (error: any) {
+                            logMessage('ERROR', `Xoá giai đoạn thất bại: ID=${id}`, error);
+                            Alert.alert('Lỗi', 'Không thể xoá thiết lập này.');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleCancelEdit = () => {
+        logMessage('INFO', 'Hủy chế độ sửa giai đoạn');
+        resetPhaseForm();
+    };
+
+    const resetPhaseForm = () => {
+        setEditingPhaseId(null);
+        setPhaseType('course');
+        setStartTime('');
+        setEndTime('');
+    };
+
     const searchModeOptions = ['Mã lớp', 'Mã HP', 'Tên HP'];
     const departmentOptions = Object.keys(majorMapping);
     const majorOptions = department ? majorMapping[department] ?? [] : [];
@@ -176,5 +281,18 @@ export const useAdminDashboardViewModel = (
         departmentOptions,
         majorOptions,
         handleSelectDepartment,
+        // Expose phase states & methods
+        phases,
+        phaseType,
+        setPhaseType,
+        startTime,
+        setStartTime,
+        endTime,
+        setEndTime,
+        editingPhaseId,
+        handleSavePhase,
+        handleEditPhase,
+        handleDeletePhase,
+        handleCancelEdit
     };
 };

@@ -14,6 +14,7 @@ import {
     ClassInfo,
     useAdminDashboardViewModel,
 } from '../../../interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
+import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
 import { useTheme } from '../../components/ThemeContext';
 import { createAdminStyles } from './styles';
 
@@ -73,13 +74,40 @@ export const AdminDashboardScreen = ({
         departmentOptions,
         majorOptions,
         handleSelectDepartment,
+        // Giai đoạn đăng ký
+        phases,
+        phaseType,
+        setPhaseType,
+        startTime,
+        setStartTime,
+        endTime,
+        setEndTime,
+        editingPhaseId,
+        handleSavePhase,
+        handleEditPhase,
+        handleDeletePhase,
+        handleCancelEdit,
     } = useAdminDashboardViewModel(onNavigateToEdit, onLogout);
 
     const { colors } = useTheme();
     const styles = createAdminStyles(colors);
 
+    // Hàm tính toán trạng thái giai đoạn động dựa theo thời gian hiện tại
+    const getPhaseStatus = (phase: RegistrationPhase) => {
+        try {
+            const now = new Date();
+            const start = new Date(phase.startTime.replace(' ', 'T'));
+            const end = new Date(phase.endTime.replace(' ', 'T'));
+            return now >= start && now <= end ? 'ĐANG MỞ' : 'ĐÃ ĐÓNG';
+        } catch {
+            return 'ĐÃ ĐÓNG';
+        }
+    };
+
+
     return (
         <SafeAreaView style={styles.container}>
+            {/* ── Header Navbar ─────────────────────────────────── */}
             <View style={styles.navBarHeader} testID="nav-bar-header">
                 <Image
                     source={require('../../../../assets/image/hust-logo.png')}
@@ -95,6 +123,7 @@ export const AdminDashboardScreen = ({
                 </TouchableOpacity>
             </View>
 
+            {/* ── User Profile Box ──────────────────────────────── */}
             {isProfileOpen && (
                 <View style={styles.userInfoBox}>
                     <Text style={styles.userInfoText}>Nguyễn Tuấn Anh - PDT3636</Text>
@@ -104,11 +133,175 @@ export const AdminDashboardScreen = ({
                 </View>
             )}
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            {/* ── Main Scroll Container ─────────────────────────── */}
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <Text style={styles.warningText}>
                     ĐƯỢC PHÉP CHỈNH SỬA! Giai đoạn TEST
                 </Text>
 
+                {/* ── SECTION A: THIẾT LẬP GIAI ĐOẠN ĐĂNG KÝ (MỚI) ─────── */}
+                <Text style={styles.phaseTableTitle}>Thiết lập giai đoạn đăng ký học tập</Text>
+                
+                <View style={styles.phaseSetupContainer} testID="phase-setup-card">
+                    {/* Chọn Loại Thiết Lập */}
+                    <View style={styles.phaseFormGroup}>
+                        <Text style={styles.phaseLabel}>Loại thiết lập</Text>
+                        <View style={styles.phaseRadioGroup}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.phaseRadioButton,
+                                    phaseType === 'course' && styles.phaseRadioButtonActive,
+                                ]}
+                                onPress={() => setPhaseType('course')}
+                                testID="radio-course"
+                            >
+                                <Text
+                                    style={[
+                                        styles.phaseRadioText,
+                                        phaseType === 'course' && styles.phaseRadioTextActive,
+                                    ]}
+                                >
+                                    Đăng ký học phần
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.phaseRadioButton,
+                                    phaseType === 'class' && styles.phaseRadioButtonActive,
+                                ]}
+                                onPress={() => setPhaseType('class')}
+                                testID="radio-class"
+                            >
+                                <Text
+                                    style={[
+                                        styles.phaseRadioText,
+                                        phaseType === 'class' && styles.phaseRadioTextActive,
+                                    ]}
+                                >
+                                    Đăng ký lớp học
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Nhập Thời Gian Bắt Đầu */}
+                    <View style={styles.phaseFormGroup}>
+                        <Text style={styles.phaseLabel}>Thời gian bắt đầu (YYYY-MM-DD HH:mm)</Text>
+                        <TextInput
+                            style={styles.phaseTextInput}
+                            placeholder="Ví dụ: 2026-06-02 12:00"
+                            placeholderTextColor={colors.textSecondary}
+                            value={startTime}
+                            onChangeText={setStartTime}
+                            testID="phase-start-input"
+                        />
+                    </View>
+
+                    {/* Nhập Thời Gian Kết Thúc */}
+                    <View style={styles.phaseFormGroup}>
+                        <Text style={styles.phaseLabel}>Thời gian kết thúc (YYYY-MM-DD HH:mm)</Text>
+                        <TextInput
+                            style={styles.phaseTextInput}
+                            placeholder="Ví dụ: 2026-06-02 18:00"
+                            placeholderTextColor={colors.textSecondary}
+                            value={endTime}
+                            onChangeText={setEndTime}
+                            testID="phase-end-input"
+                        />
+                    </View>
+
+                    {/* Các Nút Lưu/Hủy */}
+                    <View style={styles.phaseButtonsRow}>
+                        <TouchableOpacity
+                            style={styles.savePhaseBtn}
+                            onPress={handleSavePhase}
+                            testID="save-phase-button"
+                        >
+                            <Text style={styles.savePhaseBtnText}>
+                                {editingPhaseId ? 'Cập nhật thiết lập' : 'Thiết lập giai đoạn'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {editingPhaseId && (
+                            <TouchableOpacity
+                                style={styles.cancelPhaseBtn}
+                                onPress={handleCancelEdit}
+                                testID="cancel-edit-phase-button"
+                            >
+                                <Text style={styles.cancelPhaseBtnText}>Hủy</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                {/* Bảng Danh sách các thiết lập hiện tại */}
+                {phases.length > 0 && (
+                    <View style={styles.tableSection} testID="phase-list-table">
+                        <Text style={styles.phaseTableTitle}>Danh sách thiết lập giai đoạn</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            <View style={styles.table}>
+                                <View style={[styles.tableRow, styles.tableHeader]}>
+                                    <Text style={[styles.cell, styles.headerCell, styles.timeCell]}>
+                                        Thời gian
+                                    </Text>
+                                    <Text style={[styles.cell, styles.headerCell, styles.typeCell]}>
+                                        Loại thiết lập
+                                    </Text>
+                                    <Text style={[styles.cell, styles.headerCell, styles.statusLabelCell]}>
+                                        Trạng thái
+                                    </Text>
+                                    <Text style={[styles.cell, styles.headerCell, styles.phaseActionCell]}>
+                                        Hành động
+                                    </Text>
+                                </View>
+
+                                {phases.map((item, index) => {
+                                    const status = getPhaseStatus(item);
+                                    return (
+                                        <View key={index} style={styles.tableRow}>
+                                            <Text style={[styles.cell, styles.timeCell]}>
+                                                {item.startTime} - {item.endTime}
+                                            </Text>
+                                            <Text style={[styles.cell, styles.typeCell]}>
+                                                {item.type === 'course' ? 'Đăng ký học phần' : 'Đăng ký lớp học'}
+                                            </Text>
+                                            <Text
+                                                style={[
+                                                    styles.cell,
+                                                    styles.statusLabelCell,
+                                                    styles.statusCell,
+                                                    status === 'ĐANG MỞ' ? styles.statusOpen : styles.statusClosed,
+                                                ]}
+                                            >
+                                                {status}
+                                            </Text>
+                                            <View style={[styles.cell, styles.phaseActionCell]}>
+                                                <TouchableOpacity
+                                                    onPress={() => handleEditPhase(item)}
+                                                    style={styles.editBtn}
+                                                >
+                                                    <Text style={styles.actionText}>Sửa</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    onPress={() => handleDeletePhase(item.id)}
+                                                    style={styles.deleteBtn}
+                                                >
+                                                    <Text style={styles.actionText}>Xoá</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        </ScrollView>
+                    </View>
+                )}
+
+                <View style={styles.divider} />
+
+                {/* ── SECTION B: QUẢN LÝ LỚP HỌC (CŨ) ────────────────── */}
+                <Text style={styles.phaseTableTitle}>Quản lý danh sách lớp học</Text>
+                
                 <View style={styles.uploadSection}>
                     <TouchableOpacity style={styles.uploadBtn} onPress={handleUpload}>
                         <Text style={styles.uploadBtnText}>Upload file</Text>
@@ -158,7 +351,7 @@ export const AdminDashboardScreen = ({
                 </View>
 
                 <View style={styles.tableSection}>
-                    <ScrollView horizontal>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <View>
                             <View style={[styles.tableRow, styles.tableHeader]}>
                                 {tableHeaders.map((header, index) => (
@@ -208,6 +401,7 @@ export const AdminDashboardScreen = ({
                 </View>
             </ScrollView>
 
+            {/* Modals cho các bộ lọc Tìm kiếm */}
             <Modal visible={isModeModalOpen} transparent animationType="fade">
                 <TouchableOpacity
                     style={styles.modalOverlay}

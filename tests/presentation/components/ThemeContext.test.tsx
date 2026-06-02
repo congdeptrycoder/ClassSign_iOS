@@ -104,7 +104,7 @@ describe('ThemeContext', () => {
 
         // React sẽ throw khi context không có provider vì ta kiểm tra context
         // Tuy nhiên vì default value đã được set, không throw — test này kiểm tra isDark
-        const { getByTestId: _unused } = render(
+        render(
             <ThemeProvider>
                 <ComponentWithoutProvider />
             </ThemeProvider>,
