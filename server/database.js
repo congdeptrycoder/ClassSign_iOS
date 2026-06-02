@@ -3,8 +3,8 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
-
-const DB_PATH = '/Users/congchi/BTVN/App_MACOS/final/src/infrastructure/database/database.sqlite';
+require('dotenv').config();
+const DB_PATH = process.env.DATA_PATH;
 
 let db = null;
 
