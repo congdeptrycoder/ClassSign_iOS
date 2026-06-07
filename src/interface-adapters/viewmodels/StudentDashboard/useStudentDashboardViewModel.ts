@@ -54,10 +54,10 @@ export const useStudentDashboardViewModel = (onLogout: () => void) => {
     // Đăng ký observer nhận cập nhật từ RegistrationPhaseRepository
     useEffect(() => {
         const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
-        const getActivePhaseUseCase = new GetActiveRegistrationPhase(phaseRepository);
-        const unsubscribe = phaseRepository.subscribe(() => {
-            // Khi có bất cứ sự thay đổi nào về phase, cập nhật active phase
-            const currentActive = getActivePhaseUseCase.execute();
+        const getActivePhaseUseCase = new GetActiveRegistrationPhase();
+        const unsubscribe = phaseRepository.subscribe((phases) => {
+            // Tính toán active phase từ dữ liệu lấy được, không gọi lại repo để tránh loop
+            const currentActive = getActivePhaseUseCase.execute(phases);
             setActivePhase(currentActive);
         });
         return () => {

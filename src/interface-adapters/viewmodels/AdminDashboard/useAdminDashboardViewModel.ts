@@ -4,6 +4,12 @@ import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
 import { RegistrationPhaseRepositoryImpl } from '../../../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
 import { ManageRegistrationPhases } from '../../../application/use-cases/ManageRegistrationPhases';
 import { logMessage } from '../../../shared/utils/logger';
+import { apiClient } from '../../../infrastructure/api/apiClient';
+
+export interface SemesterInfo {
+    id: number;
+    semester: number;
+}
 
 export interface ClassInfo {
     ky: string;
@@ -100,6 +106,9 @@ export const useAdminDashboardViewModel = (
     const [phaseType, setPhaseType] = useState<'course' | 'class'>('course');
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
+    const [semesterId, setSemesterId] = useState<number | null>(null);
+    const [semestersList, setSemestersList] = useState<SemesterInfo[]>([]);
+    const [isSemesterModalOpen, setSemesterModalOpen] = useState(false);
     const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
 
     const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
@@ -107,6 +116,14 @@ export const useAdminDashboardViewModel = (
 
     // Subscribe vào phase repository (Observer Pattern)
     useEffect(() => {
+        const fetchSemesters = async () => {
+            const res = await apiClient.get<{ success: boolean, data: SemesterInfo[] }>('/semesters');
+            if (res.success && res.data) {
+                setSemestersList(res.data.data || []);
+            }
+        };
+        fetchSemesters();
+
         const unsubscribe = phaseRepository.subscribe(updatedPhases => {
             setPhases(updatedPhases);
         });
@@ -170,25 +187,32 @@ export const useAdminDashboardViewModel = (
     };
 
     // ── Giai đoạn đăng ký (Phases) actions ───────────────────────────────────
-    const handleSavePhase = () => {
+    const handleSavePhase = async () => {
+        if (!semesterId) {
+            Alert.alert('Lỗi', 'Vui lòng chọn Học kỳ.');
+            return;
+        }
+
         logMessage('INFO', `Lưu giai đoạn thiết lập: type=${phaseType}, start=${startTime}, end=${endTime}, editId=${editingPhaseId}`);
         try {
             if (editingPhaseId) {
                 // Update phase
-                managePhasesUseCase.updatePhase({
+                await managePhasesUseCase.updatePhase({
                     id: editingPhaseId,
                     type: phaseType,
                     startTime,
-                    endTime
+                    endTime,
+                    semesterId
                 });
                 logMessage('INFO', `Cập nhật giai đoạn đăng ký thành công: ID=${editingPhaseId}`);
                 Alert.alert('Thành công', 'Đã cập nhật thiết lập giai đoạn đăng ký thành công.');
             } else {
                 // Create phase
-                const newPhase = managePhasesUseCase.addPhase({
+                const newPhase = await managePhasesUseCase.addPhase({
                     type: phaseType,
                     startTime,
-                    endTime
+                    endTime,
+                    semesterId
                 });
                 logMessage('INFO', `Thêm giai đoạn đăng ký mới thành công: ID=${newPhase.id}`);
                 Alert.alert('Thành công', 'Đã thiết lập giai đoạn đăng ký thành công.');
@@ -208,6 +232,7 @@ export const useAdminDashboardViewModel = (
         setPhaseType(phase.type);
         setStartTime(phase.startTime);
         setEndTime(phase.endTime);
+        setSemesterId(phase.semesterId);
     };
 
     const handleDeletePhase = (id: string) => {
@@ -220,9 +245,9 @@ export const useAdminDashboardViewModel = (
                 {
                     text: 'Xoá',
                     style: 'destructive',
-                    onPress: () => {
+                    onPress: async () => {
                         try {
-                            managePhasesUseCase.deletePhase(id);
+                            await managePhasesUseCase.deletePhase(id);
                             logMessage('INFO', `Đã xoá giai đoạn thành công: ID=${id}`);
                             Alert.alert('Thành công', 'Đã xoá thiết lập giai đoạn đăng ký.');
                             if (editingPhaseId === id) {
@@ -248,6 +273,7 @@ export const useAdminDashboardViewModel = (
         setPhaseType('course');
         setStartTime('');
         setEndTime('');
+        setSemesterId(null);
     };
 
     const searchModeOptions = ['Mã lớp', 'Mã HP', 'Tên HP'];
@@ -289,6 +315,11 @@ export const useAdminDashboardViewModel = (
         setStartTime,
         endTime,
         setEndTime,
+        semesterId,
+        setSemesterId,
+        semestersList,
+        isSemesterModalOpen,
+        setSemesterModalOpen,
         editingPhaseId,
         handleSavePhase,
         handleEditPhase,

@@ -82,6 +82,11 @@ export const AdminDashboardScreen = ({
         setStartTime,
         endTime,
         setEndTime,
+        semesterId,
+        setSemesterId,
+        semestersList,
+        isSemesterModalOpen,
+        setSemesterModalOpen,
         editingPhaseId,
         handleSavePhase,
         handleEditPhase,
@@ -92,16 +97,9 @@ export const AdminDashboardScreen = ({
     const { colors } = useTheme();
     const styles = createAdminStyles(colors);
 
-    // Hàm tính toán trạng thái giai đoạn động dựa theo thời gian hiện tại
+    // Hàm lấy trạng thái giai đoạn
     const getPhaseStatus = (phase: RegistrationPhase) => {
-        try {
-            const now = new Date();
-            const start = new Date(phase.startTime.replace(' ', 'T'));
-            const end = new Date(phase.endTime.replace(' ', 'T'));
-            return now >= start && now <= end ? 'ĐANG MỞ' : 'ĐÃ ĐÓNG';
-        } catch {
-            return 'ĐÃ ĐÓNG';
-        }
+        return phase.isActive === 1 ? 'ĐANG DIỄN RA' : 'ĐÃ KẾT THÚC';
     };
 
 
@@ -184,6 +182,20 @@ export const AdminDashboardScreen = ({
                         </View>
                     </View>
 
+                    {/* Chọn Học Kỳ */}
+                    <View style={styles.phaseFormGroup}>
+                        <Text style={styles.phaseLabel}>Học kỳ</Text>
+                        <TouchableOpacity
+                            style={[styles.phaseTextInput, { justifyContent: 'center' }]}
+                            onPress={() => setSemesterModalOpen(true)}
+                            testID="phase-semester-input"
+                        >
+                            <Text style={{ color: semesterId ? colors.textPrimary : colors.textSecondary }}>
+                                {semesterId ? semestersList.find(s => s.id === semesterId)?.semester || semesterId : 'Chọn học kỳ'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Nhập Thời Gian Bắt Đầu */}
                     <View style={styles.phaseFormGroup}>
                         <Text style={styles.phaseLabel}>Thời gian bắt đầu (YYYY-MM-DD HH:mm)</Text>
@@ -245,6 +257,9 @@ export const AdminDashboardScreen = ({
                                         Thời gian
                                     </Text>
                                     <Text style={[styles.cell, styles.headerCell, styles.typeCell]}>
+                                        Học kỳ
+                                    </Text>
+                                    <Text style={[styles.cell, styles.headerCell, styles.typeCell]}>
                                         Loại thiết lập
                                     </Text>
                                     <Text style={[styles.cell, styles.headerCell, styles.statusLabelCell]}>
@@ -263,6 +278,9 @@ export const AdminDashboardScreen = ({
                                                 {item.startTime} - {item.endTime}
                                             </Text>
                                             <Text style={[styles.cell, styles.typeCell]}>
+                                                {item.semesterName || item.semesterId}
+                                            </Text>
+                                            <Text style={[styles.cell, styles.typeCell]}>
                                                 {item.type === 'course' ? 'Đăng ký học phần' : 'Đăng ký lớp học'}
                                             </Text>
                                             <Text
@@ -270,7 +288,7 @@ export const AdminDashboardScreen = ({
                                                     styles.cell,
                                                     styles.statusLabelCell,
                                                     styles.statusCell,
-                                                    status === 'ĐANG MỞ' ? styles.statusOpen : styles.statusClosed,
+                                                    status === 'ĐANG DIỄN RA' ? styles.statusOpen : styles.statusClosed,
                                                 ]}
                                             >
                                                 {status}
@@ -467,6 +485,32 @@ export const AdminDashboardScreen = ({
                                     }}
                                 >
                                     <Text style={styles.modalItemText}>{item}</Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Modal cho Học kỳ */}
+            <Modal visible={isSemesterModalOpen} transparent animationType="fade">
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    onPress={() => setSemesterModalOpen(false)}
+                >
+                    <View style={styles.modalContent}>
+                        <FlatList
+                            data={semestersList}
+                            keyExtractor={item => String(item.id)}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.modalItem}
+                                    onPress={() => {
+                                        setSemesterId(item.id);
+                                        setSemesterModalOpen(false);
+                                    }}
+                                >
+                                    <Text style={styles.modalItemText}>{item.semester}</Text>
                                 </TouchableOpacity>
                             )}
                         />

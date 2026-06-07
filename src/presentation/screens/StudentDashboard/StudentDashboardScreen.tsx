@@ -121,10 +121,10 @@ export const StudentDashboardScreen = ({
                     ) : (
                         /* Giao diện khi CÓ giai đoạn đăng ký hoạt động */
                         <View testID="active-phase-container">
-                            {/* Ô nhập học phần để đăng ký */}
+                            {/* Ô nhập học phần/lớp học để đăng ký */}
                             <TextInput
                                 style={styles.searchInput}
-                                placeholder="Nhập mã/tên học phần"
+                                placeholder={activePhase.type === 'course' ? "Nhập mã/tên học phần" : "Nhập mã/tên lớp học"}
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
                                 placeholderTextColor={colors.textSecondary}

@@ -4,11 +4,11 @@ import { IRegistrationPhaseRepository } from '../../domain/repositories/IRegistr
 export class ManageRegistrationPhases {
   constructor(private phaseRepository: IRegistrationPhaseRepository) {}
 
-  public getPhases(): RegistrationPhase[] {
-    return this.phaseRepository.getPhases();
+  public async getPhases(): Promise<RegistrationPhase[]> {
+    return await this.phaseRepository.getPhases();
   }
 
-  public addPhase(phase: Omit<RegistrationPhase, 'id'>): RegistrationPhase {
+  public async addPhase(phase: Omit<RegistrationPhase, 'id' | 'isActive' | 'semesterName'>): Promise<RegistrationPhase> {
     // Ràng buộc nghiệp vụ: Thời gian kết thúc phải sau thời gian bắt đầu
     const start = new Date(phase.startTime.replace(' ', 'T'));
     const end = new Date(phase.endTime.replace(' ', 'T'));
@@ -21,10 +21,10 @@ export class ManageRegistrationPhases {
       throw new Error('Thời gian kết thúc phải sau thời gian bắt đầu!');
     }
 
-    return this.phaseRepository.addPhase(phase);
+    return await this.phaseRepository.addPhase(phase);
   }
 
-  public updatePhase(phase: RegistrationPhase): void {
+  public async updatePhase(phase: RegistrationPhase): Promise<void> {
     const start = new Date(phase.startTime.replace(' ', 'T'));
     const end = new Date(phase.endTime.replace(' ', 'T'));
     
@@ -36,11 +36,11 @@ export class ManageRegistrationPhases {
       throw new Error('Thời gian kết thúc phải sau thời gian bắt đầu!');
     }
 
-    this.phaseRepository.updatePhase(phase);
+    await this.phaseRepository.updatePhase(phase);
   }
 
-  public deletePhase(id: string): void {
-    this.phaseRepository.deletePhase(id);
+  public async deletePhase(id: string): Promise<void> {
+    await this.phaseRepository.deletePhase(id);
   }
 }
 export default ManageRegistrationPhases;

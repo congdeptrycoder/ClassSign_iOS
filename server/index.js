@@ -27,6 +27,8 @@ app.options(/.*/, (_req, res) => res.sendStatus(204));
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/semesters', require('./routes/semesters'));
+app.use('/api/academic-periods', require('./routes/academic-periods'));
 
 // ── Khởi động ─────────────────────────────────────────────────────────────────
 try {

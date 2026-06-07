@@ -3,4 +3,7 @@ export interface RegistrationPhase {
   type: 'course' | 'class'; // 'course' = Đăng ký học phần, 'class' = Đăng ký lớp học
   startTime: string; // Định dạng YYYY-MM-DD HH:mm
   endTime: string;   // Định dạng YYYY-MM-DD HH:mm
+  semesterId: number;
+  semesterName?: string;
+  isActive?: number;
 }
