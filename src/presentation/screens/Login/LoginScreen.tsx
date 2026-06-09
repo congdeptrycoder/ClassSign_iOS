@@ -15,9 +15,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLoginViewModel } from '../../../interface-adapters/viewmodels/Login/useLoginViewModel';
 import { useTheme } from '../../components/ThemeContext';
 import { createLoginStyles } from './styles';
+import { Account } from '../../../domain/entities/Account';
 
 type LoginScreenProps = {
-    onLoginSuccess?: (role: string) => void;
+    onLoginSuccess?: (account: Account) => void;
 };
 
 export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
@@ -39,11 +40,11 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
     // Xử lý animation khi đăng nhập thành công
     useEffect(() => {
         if (account && !isLoading) {
-            playSuccessAnimation(account.role);
+            playSuccessAnimation(account);
         }
     }, [account, isLoading]);
 
-    const playSuccessAnimation = (role: string) => {
+    const playSuccessAnimation = (loggedInAccount: Account) => {
         // Animation 1: Username - viền + nền chuyển sang xanh lá (0.5s)
         Animated.parallel([
             Animated.timing(usernameColorAnim, {
@@ -76,7 +77,7 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
                 passwordColorAnim.setValue(0);
                 usernameBackgroundAnim.setValue(0);
                 passwordBackgroundAnim.setValue(0);
-                onLoginSuccess?.(role);
+                onLoginSuccess?.(loggedInAccount);
             });
         });
     };

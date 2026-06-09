@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { Account } from '../../../domain/entities/Account';
 import {
     RegisteredSubject,
     TimeEvent,
@@ -18,6 +19,8 @@ import { createStudentStyles } from './styles';
 
 type StudentDashboardScreenProps = {
     onLogout: () => void;
+    onViewCurriculum: () => void;
+    account?: Account | null;
 };
 
 const daysOfWeek = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
@@ -26,12 +29,18 @@ const afternoonPeriods = [7, 8, 9, 10, 11, 12];
 
 export const StudentDashboardScreen = ({
     onLogout,
+    onViewCurriculum,
+    account,
 }: StudentDashboardScreenProps) => {
     const {
         isUserInfoVisible,
         toggleUserInfo,
         searchQuery,
         setSearchQuery,
+        isSuggestionVisible,
+        setIsSuggestionVisible,
+        isSearching,
+        searchError,
         handleRegisterSubject,
         handleViewCurriculum,
         handleLogout,
@@ -40,26 +49,37 @@ export const StudentDashboardScreen = ({
         activePhase,
         allowedSuggestions,
         handleSelectSuggestion,
-    } = useStudentDashboardViewModel(onLogout);
+        isSubmitting,
+    } = useStudentDashboardViewModel(onLogout, account?.id ?? 1, onViewCurriculum);
 
     const { colors } = useTheme();
     const styles = createStudentStyles(colors);
+    const studentLabel = `${account?.name ?? 'Sinh viên'} - ${account?.id_card ?? account?.username ?? account?.id ?? ''}`;
 
-    // Tính toán thông điệp hiển thị dựa theo activePhase
-    const getPhaseMessage = () => {
-        if (!activePhase) {
-            return 'Đang không có lịch đăng ký';
+    const phaseMessage = !activePhase
+        ? 'Không có lịch đăng ký'
+        : activePhase.type === 'course'
+            ? 'Đợt đăng ký học phần'
+            : 'Đợt đăng ký lớp học';
+    const phaseBadge = activePhase ? 'Đang mở' : 'Đã đóng';
+    const searchLabel = activePhase?.type === 'class'
+        ? 'Tìm lớp học phần'
+        : 'Tìm học phần';
+
+    const placeholder = activePhase?.type === 'class'
+        ? 'Nhập mã hoặc tên lớp học phần'
+        : 'Nhập mã hoặc tên học phần';
+    const getRegistrationStatusStyle = (status: string) => {
+        if (status.includes('Thành công') || status.includes('Đã đăng ký')) {
+            return styles.statusRegistered;
         }
-        return activePhase.type === 'course'
-            ? 'Hệ thống đang mở giai đoạn Đăng ký học phần'
-            : 'Hệ thống đang mở giai đoạn Đăng ký lớp học';
+        if (status.includes('Đã học')) return styles.statusCompleted;
+        return styles.statusAvailable;
     };
-
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* ── Header Navbar ─────────────────────────────────── */}
                 <View style={styles.navBarHeader} testID="nav-bar-header">
                     <Image
                         source={require('../../../../assets/image/hust-logo.png')}
@@ -75,12 +95,9 @@ export const StudentDashboardScreen = ({
                     </TouchableOpacity>
                 </View>
 
-                {/* ── User Information Panel ───────────────────────── */}
                 {isUserInfoVisible && (
                     <View style={styles.userInfoBox}>
-                        <Text style={styles.userInfoText}>
-                            Phan Chí Công - 20231566
-                        </Text>
+                        <Text style={styles.userInfoText}>{studentLabel}</Text>
                         <TouchableOpacity
                             style={styles.logoutButton}
                             onPress={handleLogout}
@@ -90,149 +107,177 @@ export const StudentDashboardScreen = ({
                     </View>
                 )}
 
-                {/* ── Main Content ScrollView ──────────────────────── */}
                 <ScrollView
                     style={styles.contentContainer}
                     showsVerticalScrollIndicator={false}
                 >
-                    <Text style={styles.whatTimeIsIt} testID="what-time-is-it">
-                        {getPhaseMessage()}
-                    </Text>
-
-                    {/* Nút Xem Chương Trình Đào Tạo luôn hiển thị để sinh viên tham khảo */}
-                    <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={handleViewCurriculum}
-                    >
-                        <Text style={styles.actionButtonText}>
-                            Xem Chương Trình Đào Tạo
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={styles.phasePanel}>
+                        <Text style={styles.phaseKicker}>Hệ thống đăng ký học tập</Text>
+                        <View style={styles.phaseTitleRow}>
+                            <Text style={styles.phaseTitle} testID="what-time-is-it">
+                                {phaseMessage}
+                            </Text>
+                            <Text style={[
+                                styles.phaseBadge,
+                                activePhase ? styles.phaseBadgeOpen : styles.phaseBadgeClosed,
+                            ]}>
+                                {phaseBadge}
+                            </Text>
+                        </View>
+                    </View>
 
                     {!activePhase ? (
-                        /* Giao diện khi KHÔNG có giai đoạn đăng ký hoạt động */
                         <View style={styles.noPhaseContainer} testID="no-phase-container">
-                            <Text style={styles.noPhaseIcon}>📅</Text>
                             <Text style={styles.noPhaseTitle}>Đang không có lịch đăng ký</Text>
                             <Text style={styles.noPhaseSubText}>
                                 Vui lòng quay lại sau hoặc liên hệ Phòng đào tạo để biết thêm chi tiết.
                             </Text>
+                            <TouchableOpacity
+                                style={styles.outlineActionButton}
+                                onPress={handleViewCurriculum}
+                            >
+                                <Text style={styles.outlineActionButtonText}>Xem CTĐT</Text>
+                            </TouchableOpacity>
                         </View>
                     ) : (
-                        /* Giao diện khi CÓ giai đoạn đăng ký hoạt động */
                         <View testID="active-phase-container">
-                            {/* Ô nhập học phần/lớp học để đăng ký */}
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder={activePhase.type === 'course' ? "Nhập mã/tên học phần" : "Nhập mã/tên lớp học"}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                placeholderTextColor={colors.textSecondary}
-                                testID="subject-search-input"
-                            />
-
-
-                            {/* Danh sách học phần gợi ý được phép đăng ký */}
-                            {allowedSuggestions.length > 0 && (
-                                <View style={styles.suggestionsContainer} testID="suggestions-dropdown">
-                                    {allowedSuggestions.map((course, index) => (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={styles.suggestionItem}
-                                            onPress={() => handleSelectSuggestion(course)}
-                                        >
-                                            <Text style={styles.suggestionText}>
-                                                {course.code} - {course.name} ({course.credits} TC)
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
+                            <View style={styles.registrationPanel}>
+                                <View style={styles.panelHeader}>
+                                    <View style={styles.panelTitleBlock}>
+                                        <Text style={styles.panelTitle}>{searchLabel}</Text>
+                                        <Text style={styles.panelSubtitle}>{studentLabel}</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.outlineActionButton}
+                                        onPress={handleViewCurriculum}
+                                    >
+                                        <Text style={styles.outlineActionButtonText}>Xem CTĐT</Text>
+                                    </TouchableOpacity>
                                 </View>
-                            )}
 
-                            <TouchableOpacity
-                                style={styles.registerButton}
-                                onPress={handleRegisterSubject}
-                                testID="register-button"
-                            >
-                                <Text style={styles.registerButtonText}>Đăng ký</Text>
-                            </TouchableOpacity>
+                                <View style={styles.searchRow}>
+                                    <TextInput
+                                        style={styles.searchInput}
+                                        placeholder={placeholder}
+                                        value={searchQuery}
+                                        onChangeText={setSearchQuery}
+                                        onFocus={() => setIsSuggestionVisible(true)}
+                                        placeholderTextColor={colors.textSecondary}
+                                        testID="subject-search-input"
+                                    />
 
-                            {/* BẢNG 1: Bảng thông tin đăng ký (Luôn hiện ở cả 2 giai đoạn) */}
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.registerButton,
+                                            isSubmitting && styles.registerButtonDisabled,
+                                        ]}
+                                        onPress={handleRegisterSubject}
+                                        disabled={isSubmitting}
+                                        testID="register-button"
+                                    >
+                                        <Text style={styles.registerButtonText}>
+                                            {isSubmitting ? 'Đang đăng ký...' : 'Đăng ký'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {isSuggestionVisible && (
+                                    <View style={styles.suggestionsContainer} testID="suggestions-dropdown">
+                                        {isSearching && (
+                                            <Text style={styles.suggestionStateText}>Đang tìm...</Text>
+                                        )}
+                                        {!isSearching && searchError && (
+                                            <Text style={styles.suggestionErrorText}>{searchError}</Text>
+                                        )}
+                                        {!isSearching && !searchError && allowedSuggestions.length === 0 && (
+                                            <Text style={styles.suggestionStateText}>Không có gợi ý phù hợp</Text>
+                                        )}
+                                        {!isSearching && !searchError && allowedSuggestions.map((item, index) => (
+                                            <TouchableOpacity
+                                                key={`${item.code}-${index}`}
+                                                style={styles.suggestionItem}
+                                                onPress={() => handleSelectSuggestion(item)}
+                                            >
+                                                <View style={styles.suggestionMainRow}>
+                                                    <Text style={styles.suggestionCode}>{item.code}</Text>
+                                                    <Text style={styles.suggestionCredits}>{item.credits} TC</Text>
+                                                </View>
+                                                <Text style={styles.suggestionText}>{item.name}</Text>
+                                                {'statusLabel' in item && (
+                                                    <Text style={[
+                                                        styles.suggestionStatus,
+                                                        item.status === 'registered'
+                                                            ? styles.statusRegistered
+                                                            : item.status === 'completed'
+                                                                ? styles.statusCompleted
+                                                                : item.status === 'blocked'
+                                                                    ? styles.statusBlocked
+                                                                    : styles.statusAvailable,
+                                                    ]}>
+                                                        {item.statusLabel}
+                                                    </Text>
+                                                )}
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+
                             <View style={styles.tableContainer} testID="registration-table">
-                                <Text style={styles.sectionTitle}>
-                                    Bảng Thông tin đăng ký
-                                </Text>
+                                <Text style={styles.sectionTitle}>Bảng thông tin đăng ký</Text>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                     <View style={styles.table}>
                                         <View style={styles.tableHeader}>
                                             <Text style={[styles.headerCell, styles.cellId]}>ID</Text>
-                                            <Text style={[styles.headerCell, styles.cellCode]}>
-                                                Mã HP
-                                            </Text>
-                                            <Text style={[styles.headerCell, styles.cellName]}>
-                                                Tên học phần
-                                            </Text>
-                                            <Text style={[styles.headerCell, styles.cellStatus]}>
-                                                TT Đăng ký
-                                            </Text>
-                                            <Text style={[styles.headerCell, styles.cellCredits]}>
-                                                Số TC
-                                            </Text>
+                                            <Text style={[styles.headerCell, styles.cellCode]}>Mã HP</Text>
+                                            <Text style={[styles.headerCell, styles.cellName]}>Tên học phần</Text>
+                                            <Text style={[styles.headerCell, styles.cellStatus]}>TT đăng ký</Text>
+                                            <Text style={[styles.headerCell, styles.cellCredits]}>Số TC</Text>
                                         </View>
-                                        {registeredSubjects.map(
-                                            (item: RegisteredSubject, index: number) => (
-                                                <View key={index} style={styles.tableRow}>
-                                                    <Text style={[styles.cell, styles.cellId]}>
-                                                        {item.id}
-                                                    </Text>
-                                                    <Text style={[styles.cell, styles.cellCode]}>
-                                                        {item.code}
-                                                    </Text>
-                                                    <Text style={[styles.cell, styles.cellName]}>
-                                                        {item.name}
-                                                    </Text>
-                                                    <Text style={[styles.cell, styles.cellStatus]}>
+                                        {registeredSubjects.map((item: RegisteredSubject) => (
+                                            <View key={item.id} style={styles.tableRow}>
+                                                <Text style={[styles.cell, styles.cellId]}>{item.id}</Text>
+                                                <Text style={[styles.cell, styles.cellCode, styles.courseCodeText]}>{item.code}</Text>
+                                                <Text style={[styles.cell, styles.cellName]}>{item.name}</Text>
+                                                <View style={[styles.cellStatus, styles.tableStatusCell]}>
+                                                    <Text style={[
+                                                        styles.tableStatusText,
+                                                        getRegistrationStatusStyle(item.status),
+                                                    ]}>
                                                         {item.status}
                                                     </Text>
-                                                    <Text style={[styles.cell, styles.cellCredits]}>
-                                                        {item.credits}
-                                                    </Text>
                                                 </View>
-                                            ),
-                                        )}
+                                                <Text style={[styles.cell, styles.cellCredits]}>{item.credits}</Text>
+                                            </View>
+                                        ))}
                                     </View>
                                 </ScrollView>
                             </View>
 
-                            {/* BẢNG 2: Thời khóa biểu tạm thời (Chỉ hiển thị khi là Giai đoạn đăng ký lớp học) */}
                             {activePhase.type === 'class' && (
                                 <View style={styles.tableContainer} testID="timetable-table">
-                                    <Text style={styles.sectionTitle}>
-                                        Thời khóa biểu tạm thời
-                                    </Text>
+                                    <Text style={styles.sectionTitle}>Thời khóa biểu tạm thời</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                         <View style={styles.timeGrid}>
                                             <View style={styles.gridRow}>
                                                 <View style={styles.gridHeaderCorner} />
-                                                {daysOfWeek.map((day: string) => (
+                                                {daysOfWeek.map(day => (
                                                     <View key={day} style={styles.gridHeaderCell}>
                                                         <Text style={styles.gridHeaderText}>{day}</Text>
                                                     </View>
                                                 ))}
                                             </View>
 
-                                            {morningPeriods.map((period: number) => (
+                                            {morningPeriods.map(period => (
                                                 <View key={`m-${period}`} style={styles.gridRow}>
                                                     <View style={styles.gridPeriodCell}>
-                                                        <Text style={styles.gridPeriodText}>
-                                                            Tiết {period}
-                                                        </Text>
+                                                        <Text style={styles.gridPeriodText}>Tiết {period}</Text>
                                                     </View>
-                                                    {daysOfWeek.map((day: string) => {
+                                                    {daysOfWeek.map(day => {
                                                         const event = timeGridEvents.find(
                                                             (gridEvent: TimeEvent) =>
                                                                 gridEvent.day === day &&
-                                                                gridEvent.period === period,
+                                                                gridEvent.period === period
                                                         );
 
                                                         return (
@@ -258,18 +303,16 @@ export const StudentDashboardScreen = ({
                                                 <Text style={styles.gridDividerText}>Nghỉ trưa</Text>
                                             </View>
 
-                                            {afternoonPeriods.map((period: number) => (
+                                            {afternoonPeriods.map(period => (
                                                 <View key={`a-${period}`} style={styles.gridRow}>
                                                     <View style={styles.gridPeriodCell}>
-                                                        <Text style={styles.gridPeriodText}>
-                                                            Tiết {period}
-                                                        </Text>
+                                                        <Text style={styles.gridPeriodText}>Tiết {period}</Text>
                                                     </View>
-                                                    {daysOfWeek.map((day: string) => {
+                                                    {daysOfWeek.map(day => {
                                                         const event = timeGridEvents.find(
                                                             (gridEvent: TimeEvent) =>
                                                                 gridEvent.day === day &&
-                                                                gridEvent.period === period,
+                                                                gridEvent.period === period
                                                         );
 
                                                         return (

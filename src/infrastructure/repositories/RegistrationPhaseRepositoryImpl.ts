@@ -2,6 +2,10 @@ import { RegistrationPhase } from '../../domain/entities/RegistrationPhase';
 import { IRegistrationPhaseRepository } from '../../domain/repositories/IRegistrationPhaseRepository';
 import { apiClient } from '../api/apiClient';
 
+interface CreatedRegistrationPhaseResponse {
+  id: string;
+}
+
 export class RegistrationPhaseRepositoryImpl implements IRegistrationPhaseRepository {
   private static instance: RegistrationPhaseRepositoryImpl;
   private phases: RegistrationPhase[] = [];
@@ -17,13 +21,8 @@ export class RegistrationPhaseRepositoryImpl implements IRegistrationPhaseReposi
   }
 
   private async fetchPhasesFromApi(): Promise<void> {
-    const res = await apiClient.get<{ success: boolean, data: RegistrationPhase[] }>('/academic-periods');
-    if (res.success && res.data) {
-      this.phases = res.data.data || [];
-      this.notify();
-    } else {
-      console.error('Lỗi khi fetch phases:', res.message);
-    }
+    this.phases = await apiClient.get<RegistrationPhase[]>('/academic-periods');
+    this.notify();
   }
 
   public async getPhases(): Promise<RegistrationPhase[]> {
@@ -31,44 +30,40 @@ export class RegistrationPhaseRepositoryImpl implements IRegistrationPhaseReposi
     return [...this.phases];
   }
 
-  public async addPhase(phase: Omit<RegistrationPhase, 'id' | 'isActive' | 'semesterName'>): Promise<RegistrationPhase> {
-    const res = await apiClient.post<{ success: boolean, data: { id: string } }>('/academic-periods', phase);
-    if (!res.success || !res.data) {
-      throw new Error(res.message || 'Lỗi khi thêm kế hoạch đăng ký.');
-    }
-    
-    // Tải lại toàn bộ danh sách để cập nhật is_active các phase cũ
+  public async addPhase(
+    phase: Omit<RegistrationPhase, 'id' | 'isActive' | 'semesterName'>
+  ): Promise<RegistrationPhase> {
+    const created = await apiClient.post<CreatedRegistrationPhaseResponse>(
+      '/academic-periods',
+      phase
+    );
+
     await this.fetchPhasesFromApi();
-    
-    return { ...phase, id: res.data.data.id, isActive: 1 };
+
+    return { ...phase, id: created.id, isActive: 1 };
   }
 
   public async updatePhase(updatedPhase: RegistrationPhase): Promise<void> {
-    const res = await apiClient.put(`/academic-periods/${updatedPhase.id}`, updatedPhase);
-    if (!res.success) {
-      throw new Error(res.message || 'Lỗi khi cập nhật kế hoạch đăng ký.');
-    }
+    await apiClient.put<null>(`/academic-periods/${updatedPhase.id}`, updatedPhase);
     await this.fetchPhasesFromApi();
   }
 
   public async deletePhase(id: string): Promise<void> {
-    const res = await apiClient.delete(`/academic-periods/${id}`);
-    if (!res.success) {
-      throw new Error(res.message || 'Lỗi khi xóa kế hoạch đăng ký.');
-    }
+    await apiClient.delete<null>(`/academic-periods/${id}`);
     await this.fetchPhasesFromApi();
   }
 
-
   public subscribe(callback: (phases: RegistrationPhase[]) => void): () => void {
     this.listeners.push(callback);
-    // Gọi API để fetch dữ liệu lần đầu khi subscribe
-    this.fetchPhasesFromApi().then(() => {
-      callback(this.phases);
-    });
-    
+    this.fetchPhasesFromApi()
+      .then(() => callback([...this.phases]))
+      .catch(error => {
+        console.error('Failed to fetch registration phases:', error);
+        callback([...this.phases]);
+      });
+
     return () => {
-      this.listeners = this.listeners.filter(l => l !== callback);
+      this.listeners = this.listeners.filter(listener => listener !== callback);
     };
   }
 
@@ -77,9 +72,10 @@ export class RegistrationPhaseRepositoryImpl implements IRegistrationPhaseReposi
       try {
         listener([...this.phases]);
       } catch (error) {
-        console.error('Lỗi khi gọi listener thông báo thay đổi giai đoạn:', error);
+        console.error('Failed to notify registration phase listener:', error);
       }
     }
   }
 }
+
 export default RegistrationPhaseRepositoryImpl;

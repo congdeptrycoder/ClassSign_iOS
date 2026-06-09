@@ -1,7 +1,6 @@
 import { AccountRepositoryImpl } from '../../../src/infrastructure/repositories/AccountRepositoryImpl';
 import { apiClient } from '../../../src/infrastructure/api/apiClient';
 
-// Mock module apiClient
 jest.mock('../../../src/infrastructure/api/apiClient', () => ({
     apiClient: {
         post: jest.fn(),
@@ -16,16 +15,14 @@ describe('AccountRepositoryImpl', () => {
         jest.clearAllMocks();
     });
 
-    it('nên trả về Account khi server phản hồi thành công', async () => {
+    it('returns an account when login succeeds', async () => {
         (apiClient.post as jest.Mock).mockResolvedValue({
-            success: true,
-            data: {
-                user: {
-                    id: 1,
-                    username: 'admin',
-                    name: 'Administrator',
-                    role: 'admin',
-                },
+            user: {
+                id: 1,
+                username: 'admin',
+                name: 'Administrator',
+                role: 'admin',
+                id_card: 'PDT0030',
             },
         });
 
@@ -36,6 +33,7 @@ describe('AccountRepositoryImpl', () => {
             username: 'admin',
             name: 'Administrator',
             role: 'admin',
+            id_card: 'PDT0030',
         });
         expect(apiClient.post).toHaveBeenCalledWith('/auth/login', {
             username: 'admin',
@@ -43,25 +41,23 @@ describe('AccountRepositoryImpl', () => {
         });
     });
 
-    it('nên throw error khi server trả về success: false', async () => {
-        (apiClient.post as jest.Mock).mockResolvedValue({
-            success: false,
-            message: 'Tài khoản hoặc mật khẩu không đúng.',
-        });
+    it('propagates authentication errors from the API client', async () => {
+        (apiClient.post as jest.Mock).mockRejectedValue(
+            new Error('Tài khoản hoặc mật khẩu không đúng.')
+        );
 
         await expect(repo.login('admin', 'wrong')).rejects.toThrow(
             'Tài khoản hoặc mật khẩu không đúng.'
         );
     });
 
-    it('nên throw error khi mạng lỗi', async () => {
-        (apiClient.post as jest.Mock).mockResolvedValue({
-            success: false,
-            message: 'Lỗi kết nối đến server.',
-        });
+    it('propagates network errors from the API client', async () => {
+        (apiClient.post as jest.Mock).mockRejectedValue(
+            new Error('Failed to connect to server.')
+        );
 
         await expect(repo.login('admin', '123')).rejects.toThrow(
-            'Lỗi kết nối đến server.'
+            'Failed to connect to server.'
         );
     });
 });

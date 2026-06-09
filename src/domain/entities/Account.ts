@@ -7,4 +7,5 @@ export interface Account {
     username: string;
     name: string;
     role: 'admin' | 'student' | 'lecturer';
+    id_card?: string | null;
 }

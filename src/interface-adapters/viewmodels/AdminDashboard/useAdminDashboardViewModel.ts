@@ -117,9 +117,12 @@ export const useAdminDashboardViewModel = (
     // Subscribe vào phase repository (Observer Pattern)
     useEffect(() => {
         const fetchSemesters = async () => {
-            const res = await apiClient.get<{ success: boolean, data: SemesterInfo[] }>('/semesters');
-            if (res.success && res.data) {
-                setSemestersList(res.data.data || []);
+            try {
+                const semesters = await apiClient.get<SemesterInfo[]>('/semesters');
+                setSemestersList(semesters);
+            } catch (error) {
+                logMessage('ERROR', 'Failed to fetch semesters', error);
+                setSemestersList([]);
             }
         };
         fetchSemesters();

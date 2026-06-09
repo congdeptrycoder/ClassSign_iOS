@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Alert, Linking } from 'react-native';
-import { RegisterCourse } from '../../../application/use-cases/RegisterCourse';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert } from 'react-native';
 import { GetActiveRegistrationPhase } from '../../../application/use-cases/GetActiveRegistrationPhase';
-import { RegistrationPhaseRepositoryImpl } from '../../../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
+import { ManageStudentRegistration } from '../../../application/use-cases/ManageStudentRegistration';
 import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
-import { Course } from '../../../domain/entities/Course';
+import {
+    ClassSuggestion,
+    CurriculumCourse,
+    TimetableEntry,
+} from '../../../domain/entities/StudentRegistration';
+import { RegistrationPhaseRepositoryImpl } from '../../../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
+import { StudentRegistrationRepositoryImpl } from '../../../infrastructure/repositories/StudentRegistrationRepositoryImpl';
 import { logMessage } from '../../../shared/utils/logger';
 
 export interface RegisteredSubject {
@@ -21,49 +26,134 @@ export interface TimeEvent {
     name: string;
 }
 
-export const useStudentDashboardViewModel = (onLogout: () => void) => {
+type Suggestion = CurriculumCourse | ClassSuggestion;
+
+const registrationUseCase = new ManageStudentRegistration(
+    new StudentRegistrationRepositoryImpl()
+);
+
+function toStatusLabel(status: string) {
+    if (status === 'completed') return 'Đã học';
+    if (status === 'registered') return 'Thành công';
+    if (status === 'cancelled') return 'Đã hủy';
+    return status;
+}
+
+function parseTimetableEvents(entries: TimetableEntry[]): TimeEvent[] {
+    return entries.flatMap(entry => {
+        if (!entry.detail) return [];
+
+        try {
+            const detail = JSON.parse(entry.detail);
+            const slots = Array.isArray(detail) ? detail : detail.slots;
+            if (!Array.isArray(slots)) return [];
+
+            return slots.flatMap((slot: any) => {
+                const periods = Array.isArray(slot.periods)
+                    ? slot.periods
+                    : [slot.period].filter(Boolean);
+
+                return periods.map((period: number) => ({
+                    day: slot.day,
+                    period,
+                    name: entry.code,
+                }));
+            });
+        } catch (_err) {
+            return [];
+        }
+    });
+}
+
+export const useStudentDashboardViewModel = (
+    onLogout: () => void,
+    studentId = 1,
+    onViewCurriculum?: () => void
+) => {
     const [isUserInfoVisible, setIsUserInfoVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [activePhase, setActivePhase] = useState<RegistrationPhase | null>(null);
-    const [registeredSubjects, setRegisteredSubjects] = useState<RegisteredSubject[]>([
-        {
-            id: '1',
-            code: 'IT3040',
-            name: 'Kỹ thuật phần mềm',
-            status: 'Thành công',
-            credits: 3,
-        },
-        {
-            id: '2',
-            code: 'IT3020',
-            name: 'Toán rời rạc',
-            status: 'Thành công',
-            credits: 3,
-        },
-        {
-            id: '3',
-            code: 'IT4060',
-            name: 'Thiết kế hệ thống mạng',
-            status: 'Thành công',
-            credits: 3,
-        },
-    ]);
+    const [registeredSubjects, setRegisteredSubjects] = useState<RegisteredSubject[]>([]);
+    const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+    const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
+    const [isSuggestionVisible, setIsSuggestionVisible] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [timeGridEvents, setTimeGridEvents] = useState<TimeEvent[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const registerUseCase = new RegisterCourse();
+    const reloadStudentData = async () => {
+        const [registeredCourses, timetable] = await Promise.all([
+            registrationUseCase.getRegisteredCourses(studentId),
+            registrationUseCase.getTimetable(studentId),
+        ]);
 
-    // Đăng ký observer nhận cập nhật từ RegistrationPhaseRepository
+        setRegisteredSubjects(
+            registeredCourses.map(course => ({
+                id: String(course.id),
+                code: course.code,
+                name: course.name,
+                credits: course.credits,
+                status: toStatusLabel(course.status),
+            }))
+        );
+        setTimeGridEvents(parseTimetableEvents(timetable));
+    };
+
     useEffect(() => {
         const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
         const getActivePhaseUseCase = new GetActiveRegistrationPhase();
-        const unsubscribe = phaseRepository.subscribe((phases) => {
-            // Tính toán active phase từ dữ liệu lấy được, không gọi lại repo để tránh loop
-            const currentActive = getActivePhaseUseCase.execute(phases);
-            setActivePhase(currentActive);
+        const unsubscribe = phaseRepository.subscribe(phases => {
+            setActivePhase(getActivePhaseUseCase.execute(phases));
         });
         return () => {
             unsubscribe();
         };
     }, []);
+
+    useEffect(() => {
+        reloadStudentData().catch(error => {
+            logMessage('ERROR', 'Không thể tải dữ liệu sinh viên', error);
+        });
+    }, [studentId]);
+
+    useEffect(() => {
+        const query = searchQuery.trim();
+        if (!activePhase) {
+            setSuggestions([]);
+            setSelectedSuggestion(null);
+            setIsSearching(false);
+            setSearchError(null);
+            return;
+        }
+
+        const timeout = setTimeout(() => {
+            setIsSearching(true);
+            setSearchError(null);
+
+            const request =
+                activePhase.type === 'course'
+                    ? registrationUseCase.searchCourseSuggestions(studentId, query)
+                    : registrationUseCase.searchClassSuggestions(studentId, query);
+
+            request
+                .then(setSuggestions)
+                .catch(error => {
+                    logMessage('ERROR', 'Không thể tải gợi ý đăng ký', error);
+                    setSearchError(
+                        error instanceof Error
+                            ? error.message
+                            : 'Không thể tải gợi ý đăng ký.'
+                    );
+                    setSuggestions([]);
+                })
+                .finally(() => {
+                    setIsSearching(false);
+                });
+        }, 250);
+
+        return () => clearTimeout(timeout);
+    }, [activePhase, searchQuery, studentId]);
 
     const toggleUserInfo = () => {
         setIsUserInfoVisible(currentValue => !currentValue);
@@ -74,82 +164,95 @@ export const useStudentDashboardViewModel = (onLogout: () => void) => {
         onLogout();
     };
 
-    // Mở trang fed.hust.edu.vn trên trình duyệt
-    const handleViewCurriculum = async () => {
-        const url = 'https://fed.hust.edu.vn';
-        logMessage('INFO', `Yêu cầu xem chương trình đào tạo: ${url}`);
+    const handleViewCurriculum = () => {
+        onViewCurriculum?.();
+    };
+
+    const handleSearchQueryChange = (value: string) => {
+        setSearchQuery(value);
+        setSelectedSuggestion(null);
+        setIsSuggestionVisible(true);
+    };
+
+    const handleSelectSuggestion = (item: Suggestion) => {
+        setSelectedSuggestion(item);
+        setSearchQuery(item.code);
+        setIsSuggestionVisible(false);
+    };
+
+    const fallbackSuggestion = useMemo(() => {
+        const normalized = searchQuery.trim().toLowerCase();
+        return suggestions.find(
+            item =>
+                item.code.toLowerCase() === normalized ||
+                item.name.toLowerCase() === normalized
+        );
+    }, [searchQuery, suggestions]);
+
+    const registerTarget = selectedSuggestion ?? fallbackSuggestion;
+
+    const handleRegisterSubject = async () => {
+        if (!activePhase) {
+            Alert.alert('Cảnh báo', 'Hiện không trong giai đoạn đăng ký.');
+            return;
+        }
+
+        if (!searchQuery.trim()) {
+            Alert.alert('Cảnh báo', 'Vui lòng nhập mã hoặc tên học phần/lớp học.');
+            return;
+        }
+
+        if (!registerTarget) {
+            Alert.alert('Cảnh báo', 'Vui lòng chọn một gợi ý hợp lệ từ danh sách.');
+            return;
+        }
+
         try {
-            const supported = await Linking.canOpenURL(url);
-            if (supported) {
-                await Linking.openURL(url);
-                logMessage('INFO', `Đã mở URL thành công: ${url}`);
+            setIsSubmitting(true);
+
+            if (activePhase.type === 'course') {
+                await registrationUseCase.registerCourse(
+                    studentId,
+                    (registerTarget as CurriculumCourse).courseId
+                );
+                Alert.alert('Thành công', `Đã đăng ký học phần ${registerTarget.code}.`);
             } else {
-                logMessage('WARN', `Không thể mở URL: ${url}`);
-                Alert.alert('Lỗi', `Thiết bị không hỗ trợ mở liên kết: ${url}`);
+                await registrationUseCase.registerClass(
+                    studentId,
+                    (registerTarget as ClassSuggestion).id
+                );
+                Alert.alert('Thành công', `Đã đăng ký lớp học phần ${registerTarget.code}.`);
             }
-        } catch (error) {
-            logMessage('ERROR', `Lỗi khi mở URL: ${url}`, error);
-            Alert.alert('Lỗi', 'Đã xảy ra lỗi khi mở trình duyệt.');
-        }
-    };
 
-    // Đăng ký học phần
-    const handleRegisterSubject = () => {
-        logMessage('INFO', `Yêu cầu đăng ký học phần với query: "${searchQuery}"`);
-        try {
-            const newSubject = registerUseCase.execute(searchQuery, registeredSubjects);
-            setRegisteredSubjects(prev => [...prev, newSubject]);
             setSearchQuery('');
-            logMessage('INFO', `Đăng ký học phần thành công: ${newSubject.code} - ${newSubject.name}`);
-            Alert.alert('Thành công', `Đăng ký thành công học phần: ${newSubject.name} (${newSubject.code})`);
+            setSuggestions([]);
+            setSelectedSuggestion(null);
+            setIsSuggestionVisible(false);
+            await reloadStudentData();
         } catch (error: any) {
-            const errorMsg = error.message || 'Đăng ký học phần thất bại';
-            logMessage('WARN', `Đăng ký thất bại: ${errorMsg}`);
-            Alert.alert('Cảnh báo', errorMsg);
+            Alert.alert('Cảnh báo', error.message || 'Đăng ký thất bại.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
-
-    // Chọn nhanh học phần từ danh sách gợi ý đề xuất
-    const handleSelectSuggestion = (course: Course) => {
-        setSearchQuery(course.code);
-        logMessage('INFO', `Đã chọn học phần gợi ý: ${course.code}`);
-    };
-
-    // Lọc danh sách học phần gợi ý dựa theo searchQuery
-    const allowedSuggestions: Course[] = searchQuery.trim()
-        ? registerUseCase.getAllowedCourses().filter(course => {
-            const query = searchQuery.trim().toLowerCase();
-            const isMatch = course.code.toLowerCase().includes(query) ||
-                          course.name.toLowerCase().includes(query);
-            // Chỉ gợi ý nếu chưa được đăng ký
-            const isNotRegistered = !registeredSubjects.some(
-                reg => reg.code.toLowerCase() === course.code.toLowerCase()
-            );
-            return isMatch && isNotRegistered;
-        })
-        : [];
-
-    const timeGridEvents: TimeEvent[] = [
-        { day: 'T2', period: 1, name: 'IT3040' },
-        { day: 'T2', period: 2, name: 'IT3040' },
-        { day: 'T3', period: 3, name: 'IT3020' },
-        { day: 'T3', period: 4, name: 'IT3020' },
-        { day: 'T5', period: 7, name: 'IT4060' },
-        { day: 'T5', period: 8, name: 'IT4060' },
-    ];
 
     return {
         isUserInfoVisible,
         toggleUserInfo,
         searchQuery,
-        setSearchQuery,
+        setSearchQuery: handleSearchQueryChange,
+        isSuggestionVisible,
+        setIsSuggestionVisible,
+        isSearching,
+        searchError,
         handleRegisterSubject,
         handleViewCurriculum,
         handleLogout,
         registeredSubjects,
         timeGridEvents,
         activePhase,
-        allowedSuggestions,
+        allowedSuggestions: suggestions,
         handleSelectSuggestion,
+        isSubmitting,
     };
 };

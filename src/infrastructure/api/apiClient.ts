@@ -6,18 +6,10 @@ export interface ApiResponse<T> {
     message?: string;
 }
 
-/**
- * Wrapper fetch hướng đến backend server.
- * Tuân thủ Clean Architecture: chỉ chịu trách nhiệm HTTP transport,
- * không chứa business logic.
- *
- * @param endpoint - Đường dẫn API, ví dụ: '/auth/login'
- * @param options  - RequestInit options của fetch
- */
 async function request<T>(
     endpoint: string,
     options: RequestInit = {}
-): Promise<ApiResponse<T>> {
+): Promise<T> {
     const url = `${SERVER_BASE_URL}/api${endpoint}`;
 
     try {
@@ -29,21 +21,21 @@ async function request<T>(
             ...options,
         });
 
-        const json = await response.json();
+        const json: ApiResponse<T> = await response.json();
 
-        if (!response.ok) {
-            return {
-                success: false,
-                message: json.message ?? `HTTP ${response.status}`,
-            };
+        if (!response.ok || !json.success) {
+            throw new Error(json.message ?? `HTTP ${response.status}`);
         }
 
-        return { success: true, data: json as T };
+        if (json.data === undefined) {
+            throw new Error('Server returned an empty data payload.');
+        }
+
+        return json.data;
     } catch (err) {
         const message =
-            err instanceof Error ? err.message : 'Lỗi kết nối đến server.';
-        console.error(`[ApiClient] Lỗi gọi ${url}:`, message);
-        return { success: false, message };
+            err instanceof Error ? err.message : 'Failed to connect to server.';
+        throw new Error(message);
     }
 }
 

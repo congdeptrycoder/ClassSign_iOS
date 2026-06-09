@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LoginUseCase } from '../../../application/use-cases/LoginUseCase';
 import { loginUseCase as defaultLoginUseCase } from '../../../di/container';
+import { Account } from '../../../domain/entities/Account';
 
 /**
  * ViewModel cho màn hình đăng nhập.
@@ -11,13 +12,13 @@ import { loginUseCase as defaultLoginUseCase } from '../../../di/container';
  * Tuân thủ DIP: nhận LoginUseCase qua parameter (dễ mock trong test).
  */
 export const useLoginViewModel = (
-    onLoginSuccess?: (role: string) => void,
+    onLoginSuccess?: (account: Account) => void,
     loginUseCaseDep: LoginUseCase = defaultLoginUseCase
 ) => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [account, setAccount] = useState<{ role: string } | null>(null);
+    const [account, setAccount] = useState<Account | null>(null);
 
     const handleLogin = async (currentUsername: string) => {
         setError(null);

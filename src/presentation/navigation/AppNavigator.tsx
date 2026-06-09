@@ -6,16 +6,20 @@ import { AdminDashboardScreen } from '../screens/AdminDashboard/AdminDashboardSc
 import { AdminEditClassScreen } from '../screens/AdminEditClass/AdminEditClassScreen';
 import { ClassInfo } from '../../interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
 import { useTheme } from '../components/ThemeContext';
+import { Account } from '../../domain/entities/Account';
+import { CurriculumScreen } from '../screens/Curriculum/CurriculumScreen';
 
 export const AppNavigator = () => {
     const { colors } = useTheme();
     const [currentScreen, setCurrentScreen] = useState<
-        'Login' | 'StudentDashboard' | 'AdminDashboard' | 'AdminEditClass'
+        'Login' | 'StudentDashboard' | 'AdminDashboard' | 'AdminEditClass' | 'Curriculum'
     >('Login');
     const [editingClass, setEditingClass] = useState<ClassInfo | null>(null);
+    const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
 
-    const handleLoginSuccess = (role: string) => {
-        if (role === 'admin') {
+    const handleLoginSuccess = (account: Account) => {
+        setCurrentAccount(account);
+        if (account.role === 'admin') {
             setCurrentScreen('AdminDashboard');
             return;
         }
@@ -24,6 +28,7 @@ export const AppNavigator = () => {
 
     const handleLogout = () => {
         setEditingClass(null);
+        setCurrentAccount(null);
         setCurrentScreen('Login');
     };
 
@@ -33,7 +38,17 @@ export const AppNavigator = () => {
                 <LoginScreen onLoginSuccess={handleLoginSuccess} />
             )}
             {currentScreen === 'StudentDashboard' && (
-                <StudentDashboardScreen onLogout={handleLogout} />
+                <StudentDashboardScreen
+                    account={currentAccount}
+                    onLogout={handleLogout}
+                    onViewCurriculum={() => setCurrentScreen('Curriculum')}
+                />
+            )}
+            {currentScreen === 'Curriculum' && (
+                <CurriculumScreen
+                    account={currentAccount}
+                    onGoBack={() => setCurrentScreen('StudentDashboard')}
+                />
             )}
             {currentScreen === 'AdminDashboard' && (
                 <AdminDashboardScreen
