@@ -18,11 +18,9 @@ function ensureStudentRecord(db, studentId) {
         throw new Error('Không tìm thấy tài khoản sinh viên.');
     }
 
-    const student = db.prepare('SELECT id FROM students WHERE id = ?').get(studentId);
-    if (!student) {
-        db.prepare(
-            "INSERT INTO students (id, status) VALUES (?, 'study')"
-        ).run(studentId);
+    const student = db.prepare('SELECT id, status FROM students WHERE id = ?').get(studentId);
+    if (!student || !student.status || !student.status.includes('study')) {
+        throw new Error('Bạn không có quyền thực hiện thao tác này. Liên hệ nhà trường để biết thêm thông tin');
     }
 }
 
@@ -91,22 +89,27 @@ function getCompletedCourseIds(db, studentId) {
     );
 }
 
-function getRegisteredCourseRows(db, studentId) {
+function getRegisteredCourseRows(db, studentId, semester = null) {
     ensureStudentCourseStatusColumn(db);
-    return db.prepare(`
+    const query = `
         SELECT
             sc.id,
             sc.course_id as courseId,
             sc.semester,
+            s.semester as semesterName,
             COALESCE(sc.status, 'registered') as status,
             c.course_code as code,
             c.course_name as name,
             c.credits
         FROM student_courses sc
         JOIN courses c ON c.id = sc.course_id
+        LEFT JOIN semesters s ON s.id = sc.semester
         WHERE sc.student_id = ?
+        ${semester !== null ? 'AND sc.semester = ?' : ''}
         ORDER BY sc.created_at DESC, sc.id DESC
-    `).all(studentId);
+    `;
+    const params = semester !== null ? [studentId, semester] : [studentId];
+    return db.prepare(query).all(...params);
 }
 
 function getCurriculumRows(db, studentId) {
@@ -179,15 +182,17 @@ function getCurriculumRows(db, studentId) {
 function getCourseStatusLabel(status) {
     switch (status) {
         case 'completed':
-            return 'Đã học';
+            return 'Đã học xong. Có thể học lại';
         case 'registered':
-            return 'Đã đăng ký';
+            return 'Đã từng đăng ký, chưa học xong';
         case 'blocked':
             return 'Chưa đủ điều kiện';
         default:
             return 'Có thể đăng ký';
     }
 }
+
+
 
 function getCurriculum(db, studentId) {
     const profile = getStudentProfile(db, studentId);
@@ -241,34 +246,96 @@ function registerCourse(db, studentId, input) {
         throw new Error('Học phần không thuộc chương trình đào tạo của sinh viên.');
     }
 
-    if (!curriculumCourse.canRegister) {
-        throw new Error(curriculumCourse.blockingReason || `Học phần đang ở trạng thái: ${curriculumCourse.statusLabel}.`);
+    if (curriculumCourse.blockingReason) {
+        throw new Error(curriculumCourse.blockingReason);
     }
 
-    const existing = db.prepare(`
-        SELECT id, status
+    const existingInCurrentSemester = db.prepare(`
+        SELECT id
         FROM student_courses
         WHERE student_id = ?
             AND course_id = ?
-            AND COALESCE(status, 'registered') IN ('registered', 'completed')
+            AND semester = ?
+        LIMIT 1
+    `).get(studentId, course.id, activePeriod.semester);
+
+    if (existingInCurrentSemester) {
+        throw new Error('Học phần này đã được đăng ký trong học kỳ hiện tại.');
+    }
+
+    const existing = db.prepare(`
+        SELECT id, status, semester
+        FROM student_courses
+        WHERE student_id = ?
+            AND course_id = ?
+        ORDER BY id DESC
         LIMIT 1
     `).get(studentId, course.id);
 
-    if (existing?.status === 'completed') {
-        throw new Error('Học phần này đã học xong.');
-    }
+    let message = 'Đăng ký thành công';
+    let insertedId = null;
 
     if (existing) {
-        throw new Error('Học phần này đã được đăng ký.');
+        if (existing.status === 'registered' && existing.semester === activePeriod.semester) {
+            return {
+                id: existing.id,
+                message: 'Bạn đã đăng ký thành công trước đó'
+            };
+        } else if (existing.status === 'registered' && existing.semester !== activePeriod.semester) {
+            message = 'Đăng ký thành công. Học phần này đã từng được đăng ký nhưng chưa học xong.';
+            const result = db.prepare(`
+                INSERT INTO student_courses (student_id, course_id, semester, status)
+                VALUES (?, ?, ?, 'registered')
+            `).run(studentId, course.id, activePeriod.semester);
+            insertedId = result.lastInsertRowid;
+        } else if (existing.status === 'completed') {
+            message = 'Đăng ký thành công. Học phần này đã từng được học, bạn đang đăng ký học lại.';
+            const result = db.prepare(`
+                INSERT INTO student_courses (student_id, course_id, semester, status)
+                VALUES (?, ?, ?, 're_registered')
+            `).run(studentId, course.id, activePeriod.semester);
+            insertedId = result.lastInsertRowid;
+        } else {
+            const result = db.prepare(`
+                INSERT INTO student_courses (student_id, course_id, semester, status)
+                VALUES (?, ?, ?, 'registered')
+            `).run(studentId, course.id, activePeriod.semester);
+            insertedId = result.lastInsertRowid;
+        }
+    } else {
+        const result = db.prepare(`
+            INSERT INTO student_courses (student_id, course_id, semester, status)
+            VALUES (?, ?, ?, 'registered')
+        `).run(studentId, course.id, activePeriod.semester);
+        insertedId = result.lastInsertRowid;
     }
 
-    const result = db.prepare(`
-        INSERT INTO student_courses (student_id, course_id, semester, status)
-        VALUES (?, ?, ?, 'registered')
-    `).run(studentId, course.id, activePeriod.semester);
+    const newRow = getRegisteredCourseRows(db, studentId)
+        .find(item => item.id === Number(insertedId || existing.id));
 
-    return getRegisteredCourseRows(db, studentId)
-        .find(item => item.id === Number(result.lastInsertRowid));
+    return {
+        ...newRow,
+        message
+    };
+}
+
+function deleteRegisteredCourse(db, studentId, courseId, semester) {
+    const existing = db.prepare(`
+        SELECT id FROM student_courses
+        WHERE student_id = ? AND course_id = ? AND semester = ?
+        LIMIT 1
+    `).get(studentId, courseId, semester);
+
+    if (!existing) {
+        throw new Error('Không tìm thấy đăng ký học phần này.');
+    }
+
+    db.prepare(`
+        DELETE FROM student_courses
+        WHERE student_id = ? AND course_id = ? AND semester = ?
+    `).run(studentId, courseId, semester);
+
+    return { success: true };
 }
 
 function searchClassSuggestions(db, studentId, query, limit = 10) {
@@ -385,6 +452,7 @@ module.exports = {
     getCurriculum,
     getRegisteredCourseRows,
     registerCourse,
+    deleteRegisteredCourse,
     registerClassSection,
     searchClassSuggestions,
     searchCourseSuggestions,

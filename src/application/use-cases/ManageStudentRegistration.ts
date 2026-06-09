@@ -36,4 +36,8 @@ export class ManageStudentRegistration {
   getTimetable(studentId: number) {
     return this.repository.getTimetable(studentId);
   }
+
+  deleteRegisteredCourse(studentId: number, courseId: number, semester: string) {
+    return this.repository.deleteRegisteredCourse(studentId, courseId, semester);
+  }
 }

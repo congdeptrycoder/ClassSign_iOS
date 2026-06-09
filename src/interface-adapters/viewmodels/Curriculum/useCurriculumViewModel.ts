@@ -17,6 +17,9 @@ export const useCurriculumViewModel = (studentId: number) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registeringCourseId, setRegisteringCourseId] = useState<number | null>(null);
+  const [popupConfig, setPopupConfig] = useState<{ visible: boolean; message: string; buttonText: string } | null>(null);
+
+  const closePopup = () => setPopupConfig(null);
 
   const loadCurriculum = async () => {
     try {
@@ -37,18 +40,26 @@ export const useCurriculumViewModel = (studentId: number) => {
   }, [studentId]);
 
   const handleRegisterCourse = async (course: CurriculumCourse) => {
-    if (!course.canRegister) {
-      Alert.alert('Cảnh báo', course.blockingReason || 'Học phần chưa đủ điều kiện đăng ký.');
-      return;
-    }
-
     try {
       setRegisteringCourseId(course.courseId);
-      await registrationUseCase.registerCourse(studentId, course.courseId);
-      Alert.alert('Thành công', `Đã đăng ký học phần ${course.code}.`);
+      const result = await registrationUseCase.registerCourse(studentId, course.courseId);
+      const message = (result as any)?.message || `Đã đăng ký học phần ${course.code}.`;
+      setPopupConfig({
+        visible: true,
+        message: message,
+        buttonText: 'Đóng'
+      });
       await loadCurriculum();
     } catch (err: any) {
-      Alert.alert('Cảnh báo', err.message || 'Đăng ký học phần thất bại.');
+      if (err.message === 'Bạn không có quyền thực hiện thao tác này. Liên hệ nhà trường để biết thêm thông tin') {
+        setPopupConfig({
+          visible: true,
+          message: err.message,
+          buttonText: 'Đóng'
+        });
+      } else {
+        Alert.alert('Cảnh báo', err.message || 'Đăng ký học phần thất bại.');
+      }
     } finally {
       setRegisteringCourseId(null);
     }
@@ -59,6 +70,8 @@ export const useCurriculumViewModel = (studentId: number) => {
     isLoading,
     error,
     registeringCourseId,
+    popupConfig,
+    closePopup,
     reload: loadCurriculum,
     handleRegisterCourse,
   };

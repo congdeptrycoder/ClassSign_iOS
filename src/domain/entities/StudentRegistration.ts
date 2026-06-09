@@ -44,11 +44,17 @@ export interface Curriculum {
 export interface RegisteredCourse {
   id: number;
   courseId: number;
-  semester: number;
+  semester: string;
+  semesterName?: string | null;
   code: string;
   name: string;
   credits: number;
   status: string;
+}
+
+export interface RegisteredCoursesResponse {
+  courses: RegisteredCourse[];
+  semesterName: string | null;
 }
 
 export interface ClassSuggestion {

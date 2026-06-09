@@ -103,10 +103,14 @@ export const createStudentStyles = (colors: ThemeColors) =>
             gap: 10,
         },
         phaseTitle: {
-            flex: 1,
             color: colors.text,
             fontSize: 20,
             fontWeight: 'bold',
+        },
+        phaseSubtitle: {
+            color: colors.textSecondary,
+            fontSize: 13,
+            marginTop: 3,
         },
         phaseBadge: {
             minWidth: 74,
@@ -277,6 +281,7 @@ export const createStudentStyles = (colors: ThemeColors) =>
         cellName: { width: 180 },
         cellStatus: { width: 100 },
         cellCredits: { width: 60 },
+        cellAction: { width: 60, alignItems: 'center' },
         tableStatusCell: {
             padding: 8,
             justifyContent: 'center',
@@ -455,7 +460,6 @@ export const createStudentStyles = (colors: ThemeColors) =>
             borderRadius: 8,
             marginTop: 10,
             maxHeight: 240,
-            overflow: 'hidden',
             zIndex: 30,
             elevation: 3,
             shadowColor: '#000',

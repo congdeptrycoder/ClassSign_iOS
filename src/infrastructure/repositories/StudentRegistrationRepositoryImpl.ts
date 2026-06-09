@@ -3,6 +3,7 @@ import {
   Curriculum,
   CurriculumCourse,
   RegisteredCourse,
+  RegisteredCoursesResponse,
   TimetableEntry,
 } from '../../domain/entities/StudentRegistration';
 import { IStudentRegistrationRepository } from '../../domain/repositories/IStudentRegistrationRepository';
@@ -15,8 +16,8 @@ export class StudentRegistrationRepositoryImpl
     return apiClient.get<Curriculum>(`/students/${studentId}/curriculum`);
   }
 
-  getRegisteredCourses(studentId: number): Promise<RegisteredCourse[]> {
-    return apiClient.get<RegisteredCourse[]>(
+  getRegisteredCourses(studentId: number): Promise<RegisteredCoursesResponse> {
+    return apiClient.get<RegisteredCoursesResponse>(
       `/students/${studentId}/registered-courses`
     );
   }
@@ -54,5 +55,9 @@ export class StudentRegistrationRepositoryImpl
 
   getTimetable(studentId: number): Promise<TimetableEntry[]> {
     return apiClient.get<TimetableEntry[]>(`/students/${studentId}/timetable`);
+  }
+
+  async deleteRegisteredCourse(studentId: number, courseId: number, semester: string): Promise<void> {
+    await apiClient.delete<{ success: boolean }>(`/students/${studentId}/course-registrations?courseId=${courseId}&semester=${encodeURIComponent(semester)}`);
   }
 }

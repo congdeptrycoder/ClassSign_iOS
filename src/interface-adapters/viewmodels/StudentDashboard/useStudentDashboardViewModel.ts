@@ -14,9 +14,12 @@ import { logMessage } from '../../../shared/utils/logger';
 
 export interface RegisteredSubject {
     id: string;
+    courseId: number;
+    semester: string;
+    rawStatus: string;      // Giá trị gốc từ DB: 'registered' | 're_registered' | 'completed' | 'cancelled'
     code: string;
     name: string;
-    status: string;
+    status: string;         // Đã dịch sang tiếng Việt để hiển thị
     credits: number;
 }
 
@@ -34,7 +37,8 @@ const registrationUseCase = new ManageStudentRegistration(
 
 function toStatusLabel(status: string) {
     if (status === 'completed') return 'Đã học';
-    if (status === 'registered') return 'Thành công';
+    if (status === 'registered') return 'Học phần chưa hoàn thành';
+    if (status === 're_registered') return 'Học cải thiện';
     if (status === 'cancelled') return 'Đã hủy';
     return status;
 }
@@ -81,16 +85,45 @@ export const useStudentDashboardViewModel = (
     const [searchError, setSearchError] = useState<string | null>(null);
     const [timeGridEvents, setTimeGridEvents] = useState<TimeEvent[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [popupConfig, setPopupConfig] = useState<{ visible: boolean; message: string; buttonText: string } | null>(null);
+    const [currentSemesterName, setCurrentSemesterName] = useState<string | null>(null);
+
+    const [deletePopupConfig, setDeletePopupConfig] = useState<{ visible: boolean; subject: RegisteredSubject | null } | null>(null);
+
+    const closePopup = () => setPopupConfig(null);
+    const closeDeletePopup = () => setDeletePopupConfig(null);
+
+    const handleRequestDeleteCourse = (subject: RegisteredSubject) => {
+        setDeletePopupConfig({ visible: true, subject });
+    };
+
+    const handleConfirmDeleteCourse = async () => {
+        if (!deletePopupConfig?.subject) return;
+        const { courseId, semester } = deletePopupConfig.subject;
+        try {
+            await registrationUseCase.deleteRegisteredCourse(studentId, courseId, semester);
+            setDeletePopupConfig(null);
+            await reloadStudentData();
+        } catch (error: any) {
+            Alert.alert('Cảnh báo', error.message || 'Xoá đăng ký thất bại.');
+        }
+    };
 
     const reloadStudentData = async () => {
-        const [registeredCourses, timetable] = await Promise.all([
+        const [response, timetable] = await Promise.all([
             registrationUseCase.getRegisteredCourses(studentId),
             registrationUseCase.getTimetable(studentId),
         ]);
 
+        const registeredCourses = response.courses;
+        setCurrentSemesterName(response.semesterName);
+
         setRegisteredSubjects(
             registeredCourses.map(course => ({
                 id: String(course.id),
+                courseId: course.courseId,
+                semester: course.semester,
+                rawStatus: course.status,
                 code: course.code,
                 name: course.name,
                 credits: course.credits,
@@ -211,11 +244,16 @@ export const useStudentDashboardViewModel = (
             setIsSubmitting(true);
 
             if (activePhase.type === 'course') {
-                await registrationUseCase.registerCourse(
+                const result = await registrationUseCase.registerCourse(
                     studentId,
                     (registerTarget as CurriculumCourse).courseId
                 );
-                Alert.alert('Thành công', `Đã đăng ký học phần ${registerTarget.code}.`);
+                const message = (result as any).message || `Đã đăng ký học phần ${registerTarget.code}.`;
+                setPopupConfig({
+                    visible: true,
+                    message: message,
+                    buttonText: 'Đóng'
+                });
             } else {
                 await registrationUseCase.registerClass(
                     studentId,
@@ -230,7 +268,15 @@ export const useStudentDashboardViewModel = (
             setIsSuggestionVisible(false);
             await reloadStudentData();
         } catch (error: any) {
-            Alert.alert('Cảnh báo', error.message || 'Đăng ký thất bại.');
+            if (error.message === 'Bạn không có quyền thực hiện thao tác này. Liên hệ nhà trường để biết thêm thông tin') {
+                setPopupConfig({
+                    visible: true,
+                    message: error.message,
+                    buttonText: 'Đóng'
+                });
+            } else {
+                Alert.alert('Cảnh báo', error.message || 'Đăng ký thất bại.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -254,5 +300,12 @@ export const useStudentDashboardViewModel = (
         allowedSuggestions: suggestions,
         handleSelectSuggestion,
         isSubmitting,
+        popupConfig,
+        closePopup,
+        deletePopupConfig,
+        closeDeletePopup,
+        handleRequestDeleteCourse,
+        handleConfirmDeleteCourse,
+        currentSemesterName,
     };
 };

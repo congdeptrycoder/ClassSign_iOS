@@ -14,6 +14,8 @@ import {
     TimeEvent,
     useStudentDashboardViewModel,
 } from '../../../interface-adapters/viewmodels/StudentDashboard/useStudentDashboardViewModel';
+import { AlarmOneChoose } from '../../components/alarm_one_choose';
+import { AlarmTwoChoose } from '../../components/alarm_two_choose';
 import { useTheme } from '../../components/ThemeContext';
 import { createStudentStyles } from './styles';
 
@@ -50,6 +52,13 @@ export const StudentDashboardScreen = ({
         allowedSuggestions,
         handleSelectSuggestion,
         isSubmitting,
+        popupConfig,
+        closePopup,
+        deletePopupConfig,
+        closeDeletePopup,
+        handleRequestDeleteCourse,
+        handleConfirmDeleteCourse,
+        currentSemesterName,
     } = useStudentDashboardViewModel(onLogout, account?.id ?? 1, onViewCurriculum);
 
     const { colors } = useTheme();
@@ -69,12 +78,17 @@ export const StudentDashboardScreen = ({
     const placeholder = activePhase?.type === 'class'
         ? 'Nhập mã hoặc tên lớp học phần'
         : 'Nhập mã hoặc tên học phần';
-    const getRegistrationStatusStyle = (status: string) => {
-        if (status.includes('Thành công') || status.includes('Đã đăng ký')) {
-            return styles.statusRegistered;
+    const getRegistrationStatusStyle = (rawStatus: string) => {
+        if (rawStatus === 'registered' || rawStatus === 're_registered') {
+            return styles.statusRegistered;   // 🔵 xanh dương
         }
-        if (status.includes('Đã học')) return styles.statusCompleted;
-        return styles.statusAvailable;
+        if (rawStatus === 'completed') {
+            return styles.statusCompleted;    // 🟢 xanh lá
+        }
+        if (rawStatus === 'cancelled') {
+            return styles.statusAvailable;    // 🟠 cam
+        }
+        return styles.statusAvailable;        // fallback
     };
 
     return (
@@ -114,9 +128,16 @@ export const StudentDashboardScreen = ({
                     <View style={styles.phasePanel}>
                         <Text style={styles.phaseKicker}>Hệ thống đăng ký học tập</Text>
                         <View style={styles.phaseTitleRow}>
-                            <Text style={styles.phaseTitle} testID="what-time-is-it">
-                                {phaseMessage}
-                            </Text>
+                            <View>
+                                <Text style={styles.phaseTitle} testID="what-time-is-it">
+                                    {phaseMessage}
+                                </Text>
+                                {currentSemesterName ? (
+                                    <Text style={styles.phaseSubtitle}>
+                                        Học kỳ: {currentSemesterName}
+                                    </Text>
+                                ) : null}
+                            </View>
                             <Text style={[
                                 styles.phaseBadge,
                                 activePhase ? styles.phaseBadgeOpen : styles.phaseBadgeClosed,
@@ -192,39 +213,49 @@ export const StudentDashboardScreen = ({
                                         {!isSearching && !searchError && allowedSuggestions.length === 0 && (
                                             <Text style={styles.suggestionStateText}>Không có gợi ý phù hợp</Text>
                                         )}
-                                        {!isSearching && !searchError && allowedSuggestions.map((item, index) => (
-                                            <TouchableOpacity
-                                                key={`${item.code}-${index}`}
-                                                style={styles.suggestionItem}
-                                                onPress={() => handleSelectSuggestion(item)}
+                                        {!isSearching && !searchError && allowedSuggestions.length > 0 && (
+                                            <ScrollView
+                                                nestedScrollEnabled
+                                                keyboardShouldPersistTaps="handled"
+                                                showsVerticalScrollIndicator={false}
                                             >
-                                                <View style={styles.suggestionMainRow}>
-                                                    <Text style={styles.suggestionCode}>{item.code}</Text>
-                                                    <Text style={styles.suggestionCredits}>{item.credits} TC</Text>
-                                                </View>
-                                                <Text style={styles.suggestionText}>{item.name}</Text>
-                                                {'statusLabel' in item && (
-                                                    <Text style={[
-                                                        styles.suggestionStatus,
-                                                        item.status === 'registered'
-                                                            ? styles.statusRegistered
-                                                            : item.status === 'completed'
-                                                                ? styles.statusCompleted
-                                                                : item.status === 'blocked'
-                                                                    ? styles.statusBlocked
-                                                                    : styles.statusAvailable,
-                                                    ]}>
-                                                        {item.statusLabel}
-                                                    </Text>
-                                                )}
-                                            </TouchableOpacity>
-                                        ))}
+                                                {allowedSuggestions.map((item, index) => (
+                                                    <TouchableOpacity
+                                                        key={`${item.code}-${index}`}
+                                                        style={styles.suggestionItem}
+                                                        onPress={() => handleSelectSuggestion(item)}
+                                                    >
+                                                        <View style={styles.suggestionMainRow}>
+                                                            <Text style={styles.suggestionCode}>{item.code}</Text>
+                                                            <Text style={styles.suggestionCredits}>{item.credits} TC</Text>
+                                                        </View>
+                                                        <Text style={styles.suggestionText}>{item.name}</Text>
+                                                        {'statusLabel' in item && (
+                                                            <Text style={[
+                                                                styles.suggestionStatus,
+                                                                item.status === 'registered'
+                                                                    ? styles.statusRegistered
+                                                                    : item.status === 'completed'
+                                                                        ? styles.statusCompleted
+                                                                        : item.status === 'blocked'
+                                                                            ? styles.statusBlocked
+                                                                            : styles.statusAvailable,
+                                                            ]}>
+                                                                {item.statusLabel}
+                                                            </Text>
+                                                        )}
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </ScrollView>
+                                        )}
                                     </View>
                                 )}
                             </View>
 
                             <View style={styles.tableContainer} testID="registration-table">
-                                <Text style={styles.sectionTitle}>Bảng thông tin đăng ký</Text>
+                                <Text style={styles.sectionTitle}>
+                                    Bảng thông tin đăng ký{currentSemesterName ? ` — ${currentSemesterName}` : ''}
+                                </Text>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                     <View style={styles.table}>
                                         <View style={styles.tableHeader}>
@@ -233,6 +264,7 @@ export const StudentDashboardScreen = ({
                                             <Text style={[styles.headerCell, styles.cellName]}>Tên học phần</Text>
                                             <Text style={[styles.headerCell, styles.cellStatus]}>TT đăng ký</Text>
                                             <Text style={[styles.headerCell, styles.cellCredits]}>Số TC</Text>
+                                            <Text style={[styles.headerCell, styles.cellAction]}>Thao tác</Text>
                                         </View>
                                         {registeredSubjects.map((item: RegisteredSubject) => (
                                             <View key={item.id} style={styles.tableRow}>
@@ -242,12 +274,15 @@ export const StudentDashboardScreen = ({
                                                 <View style={[styles.cellStatus, styles.tableStatusCell]}>
                                                     <Text style={[
                                                         styles.tableStatusText,
-                                                        getRegistrationStatusStyle(item.status),
+                                                        getRegistrationStatusStyle(item.rawStatus),
                                                     ]}>
                                                         {item.status}
                                                     </Text>
                                                 </View>
                                                 <Text style={[styles.cell, styles.cellCredits]}>{item.credits}</Text>
+                                                <TouchableOpacity style={[styles.cell, styles.cellAction]} onPress={() => handleRequestDeleteCourse(item)}>
+                                                    <Text style={{color: 'red'}}>Xoá</Text>
+                                                </TouchableOpacity>
                                             </View>
                                         ))}
                                     </View>
@@ -342,6 +377,26 @@ export const StudentDashboardScreen = ({
 
                     <View style={styles.bottomSpacer} />
                 </ScrollView>
+
+                {popupConfig && (
+                    <AlarmOneChoose
+                        visible={popupConfig.visible}
+                        message={popupConfig.message}
+                        buttonText={popupConfig.buttonText}
+                        onClose={closePopup}
+                    />
+                )}
+
+                {deletePopupConfig && (
+                    <AlarmTwoChoose
+                        visible={deletePopupConfig.visible}
+                        message="Xác nhận xoá đăng ký học phần này"
+                        cancelText="Huỷ"
+                        confirmText="Xác nhận"
+                        onCancel={closeDeletePopup}
+                        onConfirm={handleConfirmDeleteCourse}
+                    />
+                )}
             </View>
         </SafeAreaView>
     );

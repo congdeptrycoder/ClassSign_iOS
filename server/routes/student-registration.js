@@ -10,6 +10,7 @@ const {
     getTimetable,
     registerClassSection,
     registerCourse,
+    deleteRegisteredCourse,
     searchClassSuggestions,
     searchCourseSuggestions,
 } = require('../services/studentRegistrationService');
@@ -45,12 +46,30 @@ router.get('/:studentId/curriculum', (req, res) => {
 router.get('/:studentId/registered-courses', (req, res) => {
     try {
         const db = getDb();
-        return sendSuccess(res, getRegisteredCourseRows(db, parseStudentId(req)));
+        const studentId = parseStudentId(req);
+
+        // Lấy semester của academic_period đang active (bất kỳ loại nào)
+        const activePeriod = db.prepare(`
+            SELECT ap.semester as semesterId, s.semester as semesterName
+            FROM academic_periods ap
+            LEFT JOIN semesters s ON s.id = ap.semester
+            WHERE ap.is_active = 1
+            ORDER BY ap.id DESC
+            LIMIT 1
+        `).get();
+
+        const semesterId = activePeriod?.semesterId ?? null;
+        const semesterName = activePeriod?.semesterName ?? null;
+
+        const courses = getRegisteredCourseRows(db, studentId, semesterId);
+
+        return sendSuccess(res, { courses, semesterName });
     } catch (err) {
         logger.error('Lỗi khi lấy học phần đã đăng ký', { error: err.message });
         return handleRouteError(res, err, 'Không thể lấy học phần đã đăng ký.');
     }
 });
+
 
 router.get('/:studentId/course-suggestions', (req, res) => {
     try {
@@ -70,14 +89,34 @@ router.get('/:studentId/course-suggestions', (req, res) => {
 router.post('/:studentId/course-registrations', (req, res) => {
     try {
         const db = getDb();
+        const result = registerCourse(db, parseStudentId(req), req.body);
         return sendSuccess(
             res,
-            registerCourse(db, parseStudentId(req), req.body),
-            'Đăng ký học phần thành công.'
+            result,
+            result.message || 'Đăng ký học phần thành công.'
         );
     } catch (err) {
         logger.error('Lỗi khi đăng ký học phần', { error: err.message });
         return handleRouteError(res, err, 'Không thể đăng ký học phần.');
+    }
+});
+
+router.delete('/:studentId/course-registrations', (req, res) => {
+    try {
+        const db = getDb();
+        const courseId = Number(req.query.courseId);
+        const semester = req.query.semester;
+        if (!courseId || !semester) {
+            throw new Error('Thiếu thông tin courseId hoặc semester');
+        }
+        return sendSuccess(
+            res,
+            deleteRegisteredCourse(db, parseStudentId(req), courseId, semester),
+            'Xoá đăng ký học phần thành công.'
+        );
+    } catch (err) {
+        logger.error('Lỗi khi xoá đăng ký học phần', { error: err.message });
+        return handleRouteError(res, err, 'Không thể xoá đăng ký học phần.');
     }
 });
 

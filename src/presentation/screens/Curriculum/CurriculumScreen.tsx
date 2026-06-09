@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   SafeAreaView,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -11,6 +12,7 @@ import { Account } from '../../../domain/entities/Account';
 import { CurriculumCourse } from '../../../domain/entities/StudentRegistration';
 import { useCurriculumViewModel } from '../../../interface-adapters/viewmodels/Curriculum/useCurriculumViewModel';
 import { useTheme } from '../../components/ThemeContext';
+import { AlarmOneChoose } from '../../components/alarm_one_choose';
 import { createStudentStyles } from '../StudentDashboard/styles';
 
 type CurriculumScreenProps = {
@@ -26,35 +28,43 @@ export const CurriculumScreen = ({ account, onGoBack }: CurriculumScreenProps) =
     isLoading,
     error,
     registeringCourseId,
+    popupConfig,
+    closePopup,
     handleRegisterCourse,
   } = useCurriculumViewModel(account?.id ?? 1);
   const totalCourses = curriculum?.courses.length ?? 0;
-  const completedCourses = curriculum?.courses.filter(course => course.hasStudied).length ?? 0;
+  const completedCourses = curriculum?.courses.filter(course => course.status === 'completed').length ?? 0;
   const registeredCourses = curriculum?.courses.filter(course => course.status === 'registered').length ?? 0;
-  const availableCourses = curriculum?.courses.filter(course => course.status === 'available').length ?? 0;
 
-  const getCourseStudyStatusStyle = (course: CurriculumCourse) => {
-    return course.hasStudied ? styles.statusCompleted : styles.statusUnlearned;
-  };
+  const [searchQuery, setSearchQuery] = useState('');
+  const filteredCourses = curriculum?.courses.filter(course =>
+    course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.name.toLowerCase().includes(searchQuery.toLowerCase())
+  ) ?? [];
 
-  const renderCourseRow = (course: CurriculumCourse) => (
-    <View key={course.curriculumId} style={styles.tableRow}>
-      <Text style={[styles.cell, styles.cellCode, styles.courseCodeText]}>{course.code}</Text>
-      <Text style={[styles.cell, styles.cellName]}>{course.name}</Text>
-      <Text style={[styles.cell, styles.cellCredits]}>{course.credits}</Text>
-      <Text style={[styles.cell, styles.cellName]}>
-        {course.prerequisiteCode ?? '-'}
-      </Text>
-      <Text style={[styles.cell, styles.cellName]}>
-        {course.parallelCode ?? '-'}
-      </Text>
-      <View style={[styles.cellStatus, styles.tableStatusCell]}>
-        <Text style={[styles.tableStatusText, getCourseStudyStatusStyle(course)]}>
-          {course.studyStatusLabel}
+  const renderCourseRow = (course: CurriculumCourse) => {
+    let rowBgColor = undefined;
+    let textColor = undefined;
+    if (course.status === 'completed') {
+      rowBgColor = '#708238';
+      textColor = '#FFF';
+    } else if (course.status === 'registered') {
+      rowBgColor = '#C49102';
+      textColor = '#FFF';
+    }
+
+    return (
+      <View key={course.curriculumId} style={[styles.tableRow, rowBgColor ? { backgroundColor: rowBgColor } : {}]}>
+        <Text style={[styles.cell, styles.cellCode, styles.courseCodeText, textColor ? { color: textColor } : {}]}>{course.code}</Text>
+        <Text style={[styles.cell, styles.cellName, textColor ? { color: textColor } : {}]}>{course.name}</Text>
+        <Text style={[styles.cell, styles.cellCredits, textColor ? { color: textColor } : {}]}>{course.credits}</Text>
+        <Text style={[styles.cell, styles.cellName, textColor ? { color: textColor } : {}]}>
+          {course.prerequisiteCode ?? '-'}
         </Text>
-      </View>
-      <View style={styles.curriculumActionCell}>
-        {course.canRegister ? (
+        <Text style={[styles.cell, styles.cellName, textColor ? { color: textColor } : {}]}>
+          {course.parallelCode ?? '-'}
+        </Text>
+        <View style={styles.curriculumActionCell}>
           <TouchableOpacity
             style={styles.inlineActionButton}
             onPress={() => handleRegisterCourse(course)}
@@ -64,12 +74,10 @@ export const CurriculumScreen = ({ account, onGoBack }: CurriculumScreenProps) =
               {registeringCourseId === course.courseId ? '...' : 'Đăng ký'}
             </Text>
           </TouchableOpacity>
-        ) : (
-          <Text style={styles.mutedCellText}>-</Text>
-        )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -109,22 +117,27 @@ export const CurriculumScreen = ({ account, onGoBack }: CurriculumScreenProps) =
                 <Text style={styles.summaryLabel}>Tổng học phần</Text>
                 <Text style={styles.summaryValue}>{totalCourses}</Text>
               </View>
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Đã học</Text>
-                <Text style={styles.summaryValue}>{completedCourses}</Text>
+              <View style={[styles.summaryCard, { backgroundColor: '#708238' }]}>
+                <Text style={[styles.summaryLabel, { color: '#FFF' }]}>Đã học xong</Text>
+                <Text style={[styles.summaryValue, { color: '#FFF' }]}>{completedCourses}</Text>
               </View>
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Đã đăng ký</Text>
-                <Text style={styles.summaryValue}>{registeredCourses}</Text>
-              </View>
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Có thể đăng ký</Text>
-                <Text style={styles.summaryValue}>{availableCourses}</Text>
+              <View style={[styles.summaryCard, { backgroundColor: '#C49102' }]}>
+                <Text style={[styles.summaryLabel, { color: '#FFF' }]}>Đã đăng ký, chưa học xong</Text>
+                <Text style={[styles.summaryValue, { color: '#FFF' }]}>{registeredCourses}</Text>
               </View>
             </View>
             <Text style={styles.sectionTitle}>
               {curriculum.student.name} - {curriculum.student.id_card ?? curriculum.student.username}
             </Text>
+            <View style={{ marginHorizontal: 16, marginBottom: 12 }}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Tìm kiếm mã hoặc tên học phần..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.table}>
                 <View style={styles.tableHeader}>
@@ -133,14 +146,21 @@ export const CurriculumScreen = ({ account, onGoBack }: CurriculumScreenProps) =
                   <Text style={[styles.headerCell, styles.cellCredits]}>TC</Text>
                   <Text style={[styles.headerCell, styles.cellName]}>Tiên quyết</Text>
                   <Text style={[styles.headerCell, styles.cellName]}>Song hành</Text>
-                  <Text style={[styles.headerCell, styles.cellStatus]}>Đã học</Text>
                   <Text style={[styles.headerCell, styles.cellStatus]}>Thao tác</Text>
                 </View>
-                {curriculum.courses.map(renderCourseRow)}
+                {filteredCourses.map(renderCourseRow)}
               </View>
             </ScrollView>
             <View style={styles.bottomSpacer} />
           </ScrollView>
+        )}
+        {popupConfig && (
+          <AlarmOneChoose
+            visible={popupConfig.visible}
+            message={popupConfig.message}
+            buttonText={popupConfig.buttonText}
+            onClose={closePopup}
+          />
         )}
       </View>
     </SafeAreaView>
