@@ -55,6 +55,7 @@ export interface RegisteredCourse {
 export interface RegisteredCoursesResponse {
   courses: RegisteredCourse[];
   semesterName: string | null;
+  studentStatus?: string;
 }
 
 export interface ClassSuggestion {

@@ -87,6 +87,7 @@ export const useStudentDashboardViewModel = (
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [popupConfig, setPopupConfig] = useState<{ visible: boolean; message: string; buttonText: string } | null>(null);
     const [currentSemesterName, setCurrentSemesterName] = useState<string | null>(null);
+    const [studentStatus, setStudentStatus] = useState<string>('study');
 
     const [deletePopupConfig, setDeletePopupConfig] = useState<{ visible: boolean; subject: RegisteredSubject | null } | null>(null);
 
@@ -117,6 +118,9 @@ export const useStudentDashboardViewModel = (
 
         const registeredCourses = response.courses;
         setCurrentSemesterName(response.semesterName);
+        if (response.studentStatus) {
+            setStudentStatus(response.studentStatus);
+        }
 
         setRegisteredSubjects(
             registeredCourses.map(course => ({
@@ -240,6 +244,23 @@ export const useStudentDashboardViewModel = (
             return;
         }
 
+        if (activePhase.type === 'course') {
+            const maxCredits = studentStatus === 'study_cc1' ? 20 :
+                               studentStatus === 'study_cc2' ? 16 :
+                               studentStatus === 'study_cc3' ? 12 : 24;
+            const currentTotalCredits = registeredSubjects.reduce((sum, item) => sum + item.credits, 0);
+            const targetCredits = (registerTarget as CurriculumCourse).credits;
+
+            if (currentTotalCredits + targetCredits > maxCredits) {
+                setPopupConfig({
+                    visible: true,
+                    message: `Tổng số TC vượt quá giới hạn. Số TC cho phép của bạn là ${maxCredits} TC.`,
+                    buttonText: 'Đóng'
+                });
+                return;
+            }
+        }
+
         try {
             setIsSubmitting(true);
 
@@ -307,5 +328,7 @@ export const useStudentDashboardViewModel = (
         handleRequestDeleteCourse,
         handleConfirmDeleteCourse,
         currentSemesterName,
+        studentStatus,
+        totalCredits: registeredSubjects.reduce((sum, item) => sum + item.credits, 0),
     };
 };

@@ -30,6 +30,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/semesters', require('./routes/semesters'));
 app.use('/api/academic-periods', require('./routes/academic-periods'));
 app.use('/api/students', require('./routes/student-registration'));
+app.use('/api/admin', require('./routes/admin'));
 
 // ── Khởi động ─────────────────────────────────────────────────────────────────
 try {

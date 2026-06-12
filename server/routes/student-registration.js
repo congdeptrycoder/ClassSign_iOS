@@ -63,7 +63,9 @@ router.get('/:studentId/registered-courses', (req, res) => {
 
         const courses = getRegisteredCourseRows(db, studentId, semesterId);
 
-        return sendSuccess(res, { courses, semesterName });
+        const studentRow = db.prepare('SELECT status FROM students WHERE id = ?').get(studentId);
+
+        return sendSuccess(res, { courses, semesterName, studentStatus: studentRow?.status });
     } catch (err) {
         logger.error('Lỗi khi lấy học phần đã đăng ký', { error: err.message });
         return handleRouteError(res, err, 'Không thể lấy học phần đã đăng ký.');

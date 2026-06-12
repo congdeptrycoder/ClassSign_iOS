@@ -16,7 +16,7 @@ Bảng students: Chứa thông tin sinh viên
 - address: TEXT
 - dob: TEXT (Ngày sinh - YYYY-MM-DD)
 - gender: TEXT (Giới tính)
-- status: TEXT (study - Đang học, graduate - Đã tốt nghiệp, leave - Bảo lưu, drop - Buộc thôi học, study_cc1 - Cảnh cáo mức 1, study_cc2 - Cảnh cáo mức 2, study_cc3 - Cảnh cáo mức 3)
+- status: TEXT (study - Đang học ( Có thể đăng ký tối đa 24 tín chỉ), graduate - Đã tốt nghiệp, leave - Bảo lưu, drop - Buộc thôi học, study_cc1 - Cảnh cáo mức 1( Có thể đăng ký tối đa 20 tín chỉ), study_cc2 - Cảnh cáo mức 2( Có thể đăng ký tối đa 16 tín chỉ), study_cc3 - Cảnh cáo mức 3( Có thể đăng ký tối đa 12 tín chỉ))
 - created_at: TEXT (DATETIME)
 - updated_at: TEXT (DATETIME)
 

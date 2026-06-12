@@ -172,6 +172,12 @@ export const createAdminStyles = (colors: ThemeColors) =>
             width: 120,
             alignItems: 'center',
         },
+        detailBtn: {
+            backgroundColor: '#337ab7',
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 4,
+        },
         editBtn: {
             backgroundColor: '#f0ad4e',
             paddingHorizontal: 8,
@@ -324,7 +330,7 @@ export const createAdminStyles = (colors: ThemeColors) =>
             width: 100,
         },
         phaseActionCell: {
-            width: 120,
+            width: 200,
             flexDirection: 'row',
             justifyContent: 'space-around',
             alignItems: 'center',

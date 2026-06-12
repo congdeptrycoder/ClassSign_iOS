@@ -21,6 +21,7 @@ import { createAdminStyles } from './styles';
 type AdminDashboardScreenProps = {
     onLogout: () => void;
     onNavigateToEdit?: (item: ClassInfo) => void;
+    onNavigateToDetails?: (semesterId: number, semesterName?: string) => void;
 };
 
 const tableHeaders = [
@@ -47,6 +48,7 @@ const tableHeaders = [
 export const AdminDashboardScreen = ({
     onLogout,
     onNavigateToEdit,
+    onNavigateToDetails,
 }: AdminDashboardScreenProps) => {
     const {
         isProfileOpen,
@@ -294,6 +296,15 @@ export const AdminDashboardScreen = ({
                                                 {status}
                                             </Text>
                                             <View style={[styles.cell, styles.phaseActionCell]}>
+                                                <TouchableOpacity
+                                                    onPress={() =>
+                                                        onNavigateToDetails?.(item.semesterId, item.semesterName)
+                                                    }
+                                                    style={styles.detailBtn}
+                                                    testID={`view-detail-btn-${item.id}`}
+                                                >
+                                                    <Text style={styles.actionText}>Xem chi tiết</Text>
+                                                </TouchableOpacity>
                                                 <TouchableOpacity
                                                     onPress={() => handleEditPhase(item)}
                                                     style={styles.editBtn}

@@ -59,6 +59,8 @@ export const StudentDashboardScreen = ({
         handleRequestDeleteCourse,
         handleConfirmDeleteCourse,
         currentSemesterName,
+        studentStatus,
+        totalCredits,
     } = useStudentDashboardViewModel(onLogout, account?.id ?? 1, onViewCurriculum);
 
     const { colors } = useTheme();
@@ -287,6 +289,17 @@ export const StudentDashboardScreen = ({
                                         ))}
                                     </View>
                                 </ScrollView>
+                                <View style={{ marginTop: 16, paddingHorizontal: 4 }}>
+                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 4 }}>
+                                        Tổng số TC: {totalCredits}
+                                    </Text>
+                                    <Text style={{ fontSize: 14, color: colors.error, fontStyle: 'italic' }}>
+                                        {studentStatus === 'study' ? '* Bạn được đăng ký tối đa 24 TC' :
+                                         studentStatus === 'study_cc1' ? '* Bạn đang bị cảnh cáo mức 1. Chỉ được đăng ký tối đa 20 TC' :
+                                         studentStatus === 'study_cc2' ? '* Bạn đang bị cảnh cáo mức 2. Chỉ được đăng ký tối đa 16 TC' :
+                                         studentStatus === 'study_cc3' ? '* Bạn đang bị cảnh cáo mức 3. Chỉ được đăng ký tối đa 12 TC' : ''}
+                                    </Text>
+                                </View>
                             </View>
 
                             {activePhase.type === 'class' && (
