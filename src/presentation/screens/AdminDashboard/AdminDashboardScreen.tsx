@@ -24,25 +24,23 @@ type AdminDashboardScreenProps = {
     onNavigateToDetails?: (semesterId: number, semesterName?: string) => void;
 };
 
-const tableHeaders = [
-    'Kỳ',
-    'Trường/Khoa',
-    'Mã lớp',
-    'Mã lớp kèm',
-    'Mã HP',
-    'Tên HP',
-    'Khối lượng',
-    'Ghi chú',
-    'Tiết BD',
-    'Tiết KT',
-    'Buổi',
-    'Phòng học',
-    'Cần TN',
-    'SLDK',
-    'SL Max',
-    'Trạng thái',
-    'TeachingType',
-    'Hành động',
+const tableHeaders: { label: string, key: keyof ClassInfo | 'action' }[] = [
+    { label: 'Trường/Khoa', key: 'khoa_truong' },
+    { label: 'Mã lớp', key: 'ma_lop' },
+    { label: 'Mã lớp kèm', key: 'ma_lop_kem' },
+    { label: 'Mã HP', key: 'ma_hp' },
+    { label: 'Tên HP', key: 'ten_hp' },
+    { label: 'Ghi chú', key: 'ghi_chu' },
+    { label: 'Thứ', key: 'thu' },
+    { label: 'Tiết BD', key: 'tiet_bd' },
+    { label: 'Tiết KT', key: 'tiet_kt' },
+    { label: 'Buổi', key: 'buoi' },
+    { label: 'Phòng học', key: 'phong_hoc' },
+    { label: 'Cần TN', key: 'can_tn' },
+    { label: 'SLDK', key: 'sl_dk' },
+    { label: 'SL Max', key: 'sl_max' },
+    { label: 'TeachingType', key: 'teaching_type' },
+    { label: 'Hành động', key: 'action' },
 ];
 
 export const AdminDashboardScreen = ({
@@ -55,27 +53,11 @@ export const AdminDashboardScreen = ({
         toggleProfile,
         handleLogout,
         handleUpload,
-        searchQuery,
-        setSearchQuery,
-        searchMode,
-        setSearchMode,
-        department,
-        major,
-        setMajor,
-        handleSearch,
+        filters,
+        handleFilterChange,
         classesData,
         handleEdit,
         handleDelete,
-        isModeModalOpen,
-        setModeModalOpen,
-        isDeptModalOpen,
-        setDeptModalOpen,
-        isMajorModalOpen,
-        setMajorModalOpen,
-        searchModeOptions,
-        departmentOptions,
-        majorOptions,
-        handleSelectDepartment,
         // Giai đoạn đăng ký
         phases,
         phaseType,
@@ -89,6 +71,10 @@ export const AdminDashboardScreen = ({
         semestersList,
         isSemesterModalOpen,
         setSemesterModalOpen,
+        selectedClassSemesterId,
+        setSelectedClassSemesterId,
+        isClassSemesterModalOpen,
+        setClassSemesterModalOpen,
         editingPhaseId,
         handleSavePhase,
         handleEditPhase,
@@ -141,7 +127,7 @@ export const AdminDashboardScreen = ({
 
                 {/* ── SECTION A: THIẾT LẬP GIAI ĐOẠN ĐĂNG KÝ (MỚI) ─────── */}
                 <Text style={styles.phaseTableTitle}>Thiết lập giai đoạn đăng ký học tập</Text>
-                
+
                 <View style={styles.phaseSetupContainer} testID="phase-setup-card">
                     {/* Chọn Loại Thiết Lập */}
                     <View style={styles.phaseFormGroup}>
@@ -329,54 +315,20 @@ export const AdminDashboardScreen = ({
                 <View style={styles.divider} />
 
                 {/* ── SECTION B: QUẢN LÝ LỚP HỌC (CŨ) ────────────────── */}
-                <Text style={styles.phaseTableTitle}>Quản lý danh sách lớp học</Text>
-                
-                <View style={styles.uploadSection}>
-                    <TouchableOpacity style={styles.uploadBtn} onPress={handleUpload}>
-                        <Text style={styles.uploadBtnText}>Upload file</Text>
+                <View style={[styles.header, { paddingHorizontal: 0, paddingVertical: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
+                    <Text style={[styles.phaseTableTitle, { marginBottom: 0 }]}>Quản lý danh sách lớp học</Text>
+                    <TouchableOpacity
+                        style={[styles.phaseTextInput, { width: 120, padding: 8, marginTop: 0, justifyContent: 'center' }]}
+                        onPress={() => setClassSemesterModalOpen(true)}
+                    >
+                        <Text style={{ color: selectedClassSemesterId ? colors.textPrimary : colors.textSecondary, textAlign: 'center' }}>
+                            {selectedClassSemesterId ? semestersList.find(s => s.id === selectedClassSemesterId)?.semester || selectedClassSemesterId : 'Chọn kỳ'}
+                        </Text>
                     </TouchableOpacity>
-                    <Text style={styles.uploadHint}>* chỉ up file .xlsx</Text>
                 </View>
 
-                <View style={styles.searchSection}>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Nhập thông tin tìm kiếm..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholderTextColor={colors.textSecondary}
-                    />
-
-                    <View style={styles.filtersRow}>
-                        <TouchableOpacity
-                            style={styles.pickerBtn}
-                            onPress={() => setModeModalOpen(true)}
-                        >
-                            <Text style={styles.pickerBtnText}>Tìm theo: {searchMode}</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.pickerBtn}
-                            onPress={() => setDeptModalOpen(true)}
-                        >
-                            <Text style={styles.pickerBtnText}>
-                                Khoa/Trường: {department || 'Chọn'}
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.pickerBtn}
-                            onPress={() => setMajorModalOpen(true)}
-                        >
-                            <Text style={styles.pickerBtnText}>
-                                Ngành: {major || 'Chọn'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-                        <Text style={styles.searchBtnText}>Tìm kiếm</Text>
-                    </TouchableOpacity>
+                <View style={styles.uploadSection}>
+                    <Text style={styles.uploadHint}>*Sử dụng ứng dụng máy tính để thực hiện upload hàng loạt lớp học</Text>
                 </View>
 
                 <View style={styles.tableSection}>
@@ -384,22 +336,30 @@ export const AdminDashboardScreen = ({
                         <View>
                             <View style={[styles.tableRow, styles.tableHeader]}>
                                 {tableHeaders.map((header, index) => (
-                                    <Text key={index} style={[styles.cell, styles.headerCell]}>
-                                        {header}
-                                    </Text>
+                                    <View key={index} style={[styles.cell, styles.headerCell]}>
+                                        <Text style={styles.headerText}>{header.label}</Text>
+                                        {header.key !== 'action' && (
+                                            <TextInput
+                                                style={styles.headerFilterInput}
+                                                placeholder="Lọc..."
+                                                placeholderTextColor={colors.textSecondary}
+                                                value={filters[header.key as keyof ClassInfo] || ''}
+                                                onChangeText={(text) => handleFilterChange(header.key as keyof ClassInfo, text)}
+                                            />
+                                        )}
+                                    </View>
                                 ))}
                             </View>
 
                             {classesData.map((item, index) => (
                                 <View key={index} style={styles.tableRow}>
-                                    <Text style={styles.cell}>{item.ky}</Text>
                                     <Text style={styles.cell}>{item.khoa_truong}</Text>
                                     <Text style={styles.cell}>{item.ma_lop}</Text>
                                     <Text style={styles.cell}>{item.ma_lop_kem}</Text>
                                     <Text style={styles.cell}>{item.ma_hp}</Text>
                                     <Text style={styles.cell}>{item.ten_hp}</Text>
-                                    <Text style={styles.cell}>{item.khoi_luong}</Text>
                                     <Text style={styles.cell}>{item.ghi_chu}</Text>
+                                    <Text style={styles.cell}>{item.thu}</Text>
                                     <Text style={styles.cell}>{item.tiet_bd}</Text>
                                     <Text style={styles.cell}>{item.tiet_kt}</Text>
                                     <Text style={styles.cell}>{item.buoi}</Text>
@@ -407,7 +367,6 @@ export const AdminDashboardScreen = ({
                                     <Text style={styles.cell}>{item.can_tn}</Text>
                                     <Text style={styles.cell}>{item.sl_dk}</Text>
                                     <Text style={styles.cell}>{item.sl_max}</Text>
-                                    <Text style={styles.cell}>{item.trang_thai}</Text>
                                     <Text style={styles.cell}>{item.teaching_type}</Text>
                                     <View style={[styles.cell, styles.actionCell]}>
                                         <TouchableOpacity
@@ -430,78 +389,7 @@ export const AdminDashboardScreen = ({
                 </View>
             </ScrollView>
 
-            {/* Modals cho các bộ lọc Tìm kiếm */}
-            <Modal visible={isModeModalOpen} transparent animationType="fade">
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    onPress={() => setModeModalOpen(false)}
-                >
-                    <View style={styles.modalContent}>
-                        <FlatList
-                            data={searchModeOptions}
-                            keyExtractor={item => item}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={styles.modalItem}
-                                    onPress={() => {
-                                        setSearchMode(item);
-                                        setModeModalOpen(false);
-                                    }}
-                                >
-                                    <Text style={styles.modalItemText}>{item}</Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </TouchableOpacity>
-            </Modal>
 
-            <Modal visible={isDeptModalOpen} transparent animationType="fade">
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    onPress={() => setDeptModalOpen(false)}
-                >
-                    <View style={styles.modalContent}>
-                        <FlatList
-                            data={departmentOptions}
-                            keyExtractor={item => item}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={styles.modalItem}
-                                    onPress={() => handleSelectDepartment(item)}
-                                >
-                                    <Text style={styles.modalItemText}>{item}</Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </TouchableOpacity>
-            </Modal>
-
-            <Modal visible={isMajorModalOpen} transparent animationType="fade">
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    onPress={() => setMajorModalOpen(false)}
-                >
-                    <View style={styles.modalContent}>
-                        <FlatList
-                            data={majorOptions}
-                            keyExtractor={item => item}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={styles.modalItem}
-                                    onPress={() => {
-                                        setMajor(item);
-                                        setMajorModalOpen(false);
-                                    }}
-                                >
-                                    <Text style={styles.modalItemText}>{item}</Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </TouchableOpacity>
-            </Modal>
 
             {/* Modal cho Học kỳ */}
             <Modal visible={isSemesterModalOpen} transparent animationType="fade">
@@ -519,6 +407,32 @@ export const AdminDashboardScreen = ({
                                     onPress={() => {
                                         setSemesterId(item.id);
                                         setSemesterModalOpen(false);
+                                    }}
+                                >
+                                    <Text style={styles.modalItemText}>{item.semester}</Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Modal cho Học kỳ của Bảng Lớp học */}
+            <Modal visible={isClassSemesterModalOpen} transparent animationType="fade">
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    onPress={() => setClassSemesterModalOpen(false)}
+                >
+                    <View style={styles.modalContent}>
+                        <FlatList
+                            data={semestersList}
+                            keyExtractor={item => String(item.id)}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.modalItem}
+                                    onPress={() => {
+                                        setSelectedClassSemesterId(item.id);
+                                        setClassSemesterModalOpen(false);
                                     }}
                                 >
                                     <Text style={styles.modalItemText}>{item.semester}</Text>

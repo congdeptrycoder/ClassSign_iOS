@@ -163,8 +163,24 @@ export const createAdminStyles = (colors: ThemeColors) =>
             color: colors.tableCell,
         },
         headerCell: {
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        headerText: {
             fontWeight: 'bold',
             color: colors.tableHeaderText,
+            marginBottom: 4,
+        },
+        headerFilterInput: {
+            borderWidth: 1,
+            borderColor: colors.inputBorder,
+            borderRadius: 4,
+            padding: 4,
+            marginTop: 4,
+            backgroundColor: colors.inputBackground,
+            color: colors.inputText,
+            fontSize: 11,
+            width: '100%',
         },
         actionCell: {
             flexDirection: 'row',

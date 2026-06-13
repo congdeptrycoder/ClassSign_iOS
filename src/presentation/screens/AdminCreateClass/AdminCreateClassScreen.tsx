@@ -8,21 +8,21 @@ import {
     View,
 } from 'react-native';
 import {
-    EditClassInitialData,
-    useAdminEditClassViewModel,
-} from '../../../interface-adapters/viewmodels/AdminEditClass/useAdminEditClassViewModel';
+    CreateClassInitialData,
+    useAdminCreateClassViewModel,
+} from '../../../interface-adapters/viewmodels/AdminCreateClass/useAdminCreateClassViewModel';
 import { useTheme } from '../../components/ThemeContext';
-import { createAdminEditStyles } from './styles';
+import { createAdminEditStyles } from '../AdminEditClass/styles';
 
-type AdminEditClassScreenProps = {
-    initialData: EditClassInitialData;
+type AdminCreateClassScreenProps = {
+    initialData: CreateClassInitialData;
     onGoBack: () => void;
 };
 
-export const AdminEditClassScreen = ({
+export const AdminCreateClassScreen = ({
     initialData,
     onGoBack,
-}: AdminEditClassScreenProps) => {
+}: AdminCreateClassScreenProps) => {
     const { colors } = useTheme();
     const styles = createAdminEditStyles(colors);
 
@@ -43,8 +43,9 @@ export const AdminEditClassScreen = ({
         slMax, setSlMax,
         teachingType, setTeachingType,
         handleSave,
-    } = useAdminEditClassViewModel(initialData, onGoBack);
+    } = useAdminCreateClassViewModel(initialData, onGoBack);
 
+    // Dùng style riêng cho input bị vô hiệu hoá
     const disabledInputStyle = [styles.input, { backgroundColor: colors.separator }];
 
     return (
@@ -54,7 +55,7 @@ export const AdminEditClassScreen = ({
                 <TouchableOpacity onPress={onGoBack} style={styles.backBtn}>
                     <Text style={styles.backBtnText}>{'< Quay lại'}</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chỉnh sửa Lớp học</Text>
+                <Text style={styles.headerTitle}>Khởi tạo Lớp học</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -238,7 +239,7 @@ export const AdminEditClassScreen = ({
                 </View>
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                    <Text style={styles.saveBtnText}>Lưu Thay Đổi</Text>
+                    <Text style={styles.saveBtnText}>Tạo Lớp</Text>
                 </TouchableOpacity>
 
             </ScrollView>

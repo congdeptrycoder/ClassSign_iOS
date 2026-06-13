@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { CourseRegistrationStat } from '../../../domain/entities/CourseRegistrationStat';
 import { AdminRepositoryImpl } from '../../../infrastructure/repositories/AdminRepositoryImpl';
 import { GetCourseRegistrationStatsUseCase } from '../../../application/use-cases/GetCourseRegistrationStatsUseCase';
+import { GetClassesByCourseUseCase } from '../../../application/use-cases/GetClassesByCourseUseCase';
+import { DeleteClassCourseUseCase } from '../../../application/use-cases/DeleteClassCourseUseCase';
+import { Alert } from 'react-native';
 
 /**
  * useAdminCourseRegistrationDetailsViewModel - ViewModel (MVVM)
@@ -11,6 +14,10 @@ export const useAdminCourseRegistrationDetailsViewModel = (semester: number | nu
     const [stats, setStats] = useState<CourseRegistrationStat[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const [expandedCourseId, setExpandedCourseId] = useState<number | null>(null);
+    const [expandedClasses, setExpandedClasses] = useState<any[]>([]);
+    const [loadingClasses, setLoadingClasses] = useState(false);
 
     const [filterMaHp, setFilterMaHp] = useState('');
     const [filterTenHp, setFilterTenHp] = useState('');
@@ -47,6 +54,42 @@ export const useAdminCourseRegistrationDetailsViewModel = (semester: number | nu
         );
     });
 
+    const toggleExpand = async (courseId: number) => {
+        if (expandedCourseId === courseId) {
+            setExpandedCourseId(null);
+            setExpandedClasses([]);
+            return;
+        }
+        
+        setExpandedCourseId(courseId);
+        setLoadingClasses(true);
+        try {
+            const adminRepo = new AdminRepositoryImpl();
+            const useCase = new GetClassesByCourseUseCase(adminRepo);
+            const classes = await useCase.execute(courseId, semester as number);
+            setExpandedClasses(classes);
+        } catch (err: any) {
+            Alert.alert('Lỗi', err.message || 'Không thể tải danh sách lớp');
+        } finally {
+            setLoadingClasses(false);
+        }
+    };
+
+    const deleteClass = async (classId: number) => {
+        try {
+            const adminRepo = new AdminRepositoryImpl();
+            const useCase = new DeleteClassCourseUseCase(adminRepo);
+            await useCase.execute(classId);
+            
+            // Xoá thành công, loại khỏi danh sách hiện tại
+            setExpandedClasses(prev => prev.filter(c => c.id !== classId));
+            
+            Alert.alert('Thành công', 'Đã xoá lớp học');
+        } catch (err: any) {
+            Alert.alert('Lỗi', err.message || 'Không thể xoá lớp học');
+        }
+    };
+
     return {
         stats: filteredStats,
         loading,
@@ -59,5 +102,10 @@ export const useAdminCourseRegistrationDetailsViewModel = (semester: number | nu
         setFilterTruongKhoa,
         filterSoLuong,
         setFilterSoLuong,
+        expandedCourseId,
+        expandedClasses,
+        loadingClasses,
+        toggleExpand,
+        deleteClass,
     };
 };

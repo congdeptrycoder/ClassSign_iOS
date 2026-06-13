@@ -29,4 +29,40 @@ export class AdminRepositoryImpl implements IAdminRepository {
             throw new Error(error.message || 'Lỗi kết nối tới máy chủ.');
         }
     }
+
+    async createClassCourse(data: any): Promise<void> {
+        try {
+            await apiClient.post('/admin/classes', data);
+        } catch (error: any) {
+            console.error('AdminRepositoryImpl createClassCourse error:', error);
+            throw new Error(error.message || 'Lỗi kết nối tới máy chủ.');
+        }
+    }
+
+    async getClassesByCourse(courseId: number, semester: number): Promise<any[]> {
+        try {
+            return await apiClient.get<any[]>(`/admin/classes?course_id=${courseId}&semester=${semester}`);
+        } catch (error: any) {
+            console.error('AdminRepositoryImpl getClassesByCourse error:', error);
+            throw new Error(error.message || 'Lỗi lấy danh sách lớp học.');
+        }
+    }
+
+    async deleteClassCourse(id: number): Promise<void> {
+        try {
+            await apiClient.delete(`/admin/classes/${id}`);
+        } catch (error: any) {
+            console.error('AdminRepositoryImpl deleteClassCourse error:', error);
+            throw new Error(error.message || 'Lỗi khi xoá lớp học.');
+        }
+    }
+
+    async updateClassCourse(id: number, data: any): Promise<void> {
+        try {
+            await apiClient.put(`/admin/classes/${id}`, data);
+        } catch (error: any) {
+            console.error('AdminRepositoryImpl updateClassCourse error:', error);
+            throw new Error(error.message || 'Lỗi khi cập nhật lớp học.');
+        }
+    }
 }

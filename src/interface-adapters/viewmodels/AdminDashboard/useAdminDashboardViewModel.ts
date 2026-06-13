@@ -5,6 +5,7 @@ import { RegistrationPhaseRepositoryImpl } from '../../../infrastructure/reposit
 import { ManageRegistrationPhases } from '../../../application/use-cases/ManageRegistrationPhases';
 import { logMessage } from '../../../shared/utils/logger';
 import { apiClient } from '../../../infrastructure/api/apiClient';
+import { FilterTableByColumn } from '../../../shared/utils/FilterTableByColumn';
 
 export interface SemesterInfo {
     id: number;
@@ -20,6 +21,7 @@ export interface ClassInfo {
     ten_hp: string;
     khoi_luong: string;
     ghi_chu: string;
+    thu: string;
     tiet_bd: string;
     tiet_kt: string;
     buoi: string;
@@ -31,75 +33,17 @@ export interface ClassInfo {
     teaching_type: string;
 }
 
-const majorMapping: Record<string, string[]> = {
-    'Trường CNTT & TT': [
-        'KHMT',
-        'KTPM',
-        'HTTT',
-        'An toàn TT',
-        'Trí tuệ nhân tạo',
-        'Khoa học Dữ liệu',
-    ],
-    'Trường Điện - Điện tử': [
-        'Kỹ thuật Điện',
-        'Kỹ thuật Điều khiển',
-        'Điện tử viễn thông',
-    ],
-    'Trường Cơ khí': ['Cơ điện tử', 'Kỹ thuật Cơ khí', 'Kỹ thuật Ô tô'],
-    'Trường Kinh tế': [
-        'Quản trị kinh doanh',
-        'Kế toán',
-        'Tài chính - Ngân hàng',
-    ],
-    'Trường Vật liệu': ['Kỹ thuật vật liệu', 'Vật liệu điện tử'],
-    'Trường Hoá và Khoa học sự sống': [
-        'Kỹ thuật hoá học',
-        'Công nghệ sinh học',
-        'Kỹ thuật môi trường',
-    ],
-    'Khoa Ngoại ngữ': ['Ngôn ngữ Anh'],
-    'Khoa Toán-Tin': ['Toán tin', 'Hệ thống thông tin quản lý'],
-    'Khoa KH&CNGD': [
-        'Công nghệ giáo dục',
-        'Quản lý giáo dục',
-        'Tâm lý học tổ chức và doanh nghiệp',
-    ],
-    'Khoa Vật lý kỹ thuật': ['Vật lý kỹ thuật', 'Kỹ thuật hạt nhân'],
-};
+
 
 export const useAdminDashboardViewModel = (
     onNavigateToEdit?: (item: ClassInfo) => void,
     onLogout?: () => void,
 ) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchMode, setSearchMode] = useState('Mã lớp');
-    const [isModeModalOpen, setModeModalOpen] = useState(false);
-    const [department, setDepartment] = useState('');
-    const [isDeptModalOpen, setDeptModalOpen] = useState(false);
-    const [major, setMajor] = useState('');
-    const [isMajorModalOpen, setMajorModalOpen] = useState(false);
-    const [classesData, setClassesData] = useState<ClassInfo[]>([
-        {
-            ky: '20261',
-            khoa_truong: 'Khoa KH&CNGD',
-            ma_lop: '360018',
-            ma_lop_kem: '888888',
-            ma_hp: 'AC2020',
-            ten_hp: 'Đồ hoạ hình động 2D,3D',
-            khoi_luong: '3(3-1-0-6)',
-            ghi_chu: 'Công nghệ giáo dục 02 K68',
-            tiet_bd: '1',
-            tiet_kt: '3',
-            buoi: 'Sáng',
-            phong_hoc: 'C7-111',
-            can_tn: 'NULL',
-            sl_dk: '51',
-            sl_max: '60',
-            trang_thai: 'Mở ĐK',
-            teaching_type: '',
-        },
-    ]);
+
+    // State cho tìm kiếm theo cột
+    const [filters, setFilters] = useState<Partial<Record<keyof ClassInfo, string>>>({});
+    const [classesData, setClassesData] = useState<ClassInfo[]>([]);
 
     // ── Giai đoạn đăng ký (Phases) states ────────────────────────────────────
     const [phases, setPhases] = useState<RegistrationPhase[]>([]);
@@ -109,6 +53,10 @@ export const useAdminDashboardViewModel = (
     const [semesterId, setSemesterId] = useState<number | null>(null);
     const [semestersList, setSemestersList] = useState<SemesterInfo[]>([]);
     const [isSemesterModalOpen, setSemesterModalOpen] = useState(false);
+
+    // State cho dropdown chọn học kỳ của bảng lớp học
+    const [selectedClassSemesterId, setSelectedClassSemesterId] = useState<number | null>(null);
+    const [isClassSemesterModalOpen, setClassSemesterModalOpen] = useState(false);
     const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
 
     const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
@@ -120,6 +68,10 @@ export const useAdminDashboardViewModel = (
             try {
                 const semesters = await apiClient.get<SemesterInfo[]>('/semesters');
                 setSemestersList(semesters);
+                if (semesters.length > 0) {
+                    const maxId = Math.max(...semesters.map(s => s.id));
+                    setSelectedClassSemesterId(maxId);
+                }
             } catch (error) {
                 logMessage('ERROR', 'Failed to fetch semesters', error);
                 setSemestersList([]);
@@ -135,6 +87,23 @@ export const useAdminDashboardViewModel = (
         };
     }, [phaseRepository]);
 
+    // Fetch lớp học khi đổi selectedClassSemesterId
+    useEffect(() => {
+        if (!selectedClassSemesterId) return;
+
+        const fetchClasses = async () => {
+            try {
+                const data = await apiClient.get<ClassInfo[]>(`/admin/classes/all?semester=${selectedClassSemesterId}`);
+                setClassesData(data);
+            } catch (error) {
+                logMessage('ERROR', 'Failed to fetch classes data', error);
+                setClassesData([]);
+            }
+        };
+
+        fetchClasses();
+    }, [selectedClassSemesterId]);
+
     const toggleProfile = () => {
         setIsProfileOpen(currentValue => !currentValue);
     };
@@ -148,8 +117,11 @@ export const useAdminDashboardViewModel = (
         Alert.alert('Upload', 'Chức năng upload file (.xlsx) sẽ được thực hiện.');
     };
 
-    const handleSearch = () => {
-        Alert.alert('Tìm kiếm', `Đang tìm kiếm: ${searchQuery} theo ${searchMode}`);
+    const handleFilterChange = (key: keyof ClassInfo, value: string) => {
+        setFilters(prev => ({
+            ...prev,
+            [key]: value
+        }));
     };
 
     const handleEdit = (item: ClassInfo) => {
@@ -181,12 +153,6 @@ export const useAdminDashboardViewModel = (
                 },
             ],
         );
-    };
-
-    const handleSelectDepartment = (selectedDepartment: string) => {
-        setDepartment(selectedDepartment);
-        setMajor('');
-        setDeptModalOpen(false);
     };
 
     // ── Giai đoạn đăng ký (Phases) actions ───────────────────────────────────
@@ -279,37 +245,18 @@ export const useAdminDashboardViewModel = (
         setSemesterId(null);
     };
 
-    const searchModeOptions = ['Mã lớp', 'Mã HP', 'Tên HP'];
-    const departmentOptions = Object.keys(majorMapping);
-    const majorOptions = department ? majorMapping[department] ?? [] : [];
+    const filteredClasses = FilterTableByColumn(classesData, filters);
 
     return {
         isProfileOpen,
         toggleProfile,
         handleLogout,
         handleUpload,
-        searchQuery,
-        setSearchQuery,
-        searchMode,
-        setSearchMode,
-        department,
-        setDepartment,
-        major,
-        setMajor,
-        handleSearch,
-        classesData,
+        filters,
+        handleFilterChange,
+        classesData: filteredClasses,
         handleEdit,
         handleDelete,
-        isModeModalOpen,
-        setModeModalOpen,
-        isDeptModalOpen,
-        setDeptModalOpen,
-        isMajorModalOpen,
-        setMajorModalOpen,
-        searchModeOptions,
-        departmentOptions,
-        majorOptions,
-        handleSelectDepartment,
         // Expose phase states & methods
         phases,
         phaseType,
@@ -323,6 +270,10 @@ export const useAdminDashboardViewModel = (
         semestersList,
         isSemesterModalOpen,
         setSemesterModalOpen,
+        selectedClassSemesterId,
+        setSelectedClassSemesterId,
+        isClassSemesterModalOpen,
+        setClassSemesterModalOpen,
         editingPhaseId,
         handleSavePhase,
         handleEditPhase,

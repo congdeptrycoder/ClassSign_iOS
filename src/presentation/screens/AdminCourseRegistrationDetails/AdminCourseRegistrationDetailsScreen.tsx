@@ -11,19 +11,26 @@ import {
 } from 'react-native';
 import { useAdminCourseRegistrationDetailsViewModel } from '../../../interface-adapters/viewmodels/AdminCourseRegistrationDetails/useAdminCourseRegistrationDetailsViewModel';
 import { useTheme } from '../../components/ThemeContext';
+import { AlarmTwoChoose } from '../../components/alarm_two_choose';
+import { createStyles } from './AdminCourseRegistrationDetailsScreen.styles';
 
 type AdminCourseRegistrationDetailsScreenProps = {
     semester: number;
     semesterName?: string;
     onGoBack: () => void;
+    onNavigateToCreateClass?: (ky: string, truongKhoa: string, maHp: string, tenHp: string) => void;
+    onNavigateToEditClass?: (classData: any) => void;
 };
 
 export const AdminCourseRegistrationDetailsScreen = ({
     semester,
     semesterName,
     onGoBack,
+    onNavigateToCreateClass,
+    onNavigateToEditClass,
 }: AdminCourseRegistrationDetailsScreenProps) => {
     const { colors } = useTheme();
+    const [classToDelete, setClassToDelete] = useState<number | null>(null);
 
     const {
         stats,
@@ -37,148 +44,14 @@ export const AdminCourseRegistrationDetailsScreen = ({
         setFilterTruongKhoa,
         filterSoLuong,
         setFilterSoLuong,
+        expandedCourseId,
+        expandedClasses,
+        loadingClasses,
+        toggleExpand,
+        deleteClass,
     } = useAdminCourseRegistrationDetailsViewModel(semester);
 
-    const styles = StyleSheet.create({
-        container: {
-            flex: 1,
-            backgroundColor: colors.background,
-        },
-        // ── Header ─────────────────────────────────────────────────────
-        header: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            backgroundColor: colors.navBar,
-        },
-        headerTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#ffffff',
-            flex: 1,
-        },
-        backBtn: {
-            backgroundColor: '#d9534f',
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 4,
-        },
-        backBtnText: {
-            color: '#fff',
-            fontWeight: 'bold',
-            fontSize: 13,
-        },
-        // ── Info card ──────────────────────────────────────────────────
-        infoCard: {
-            margin: 16,
-            padding: 12,
-            backgroundColor: colors.card,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: colors.tableBorder,
-        },
-        infoText: {
-            fontSize: 15,
-            fontWeight: 'bold',
-            color: colors.cardText,
-        },
-        // ── Filter input trong Header ───────────────────────────────────
-        headerFilterInput: {
-            borderWidth: 1,
-            borderColor: colors.inputBorder,
-            borderRadius: 4,
-            padding: 4,
-            marginTop: 4,
-            backgroundColor: colors.inputBackground,
-            color: colors.inputText,
-            fontSize: 11,
-            width: '100%',
-        },
-        // ── Table ──────────────────────────────────────────────────────
-        tableWrapper: {
-            flex: 1,
-            marginHorizontal: 16,
-        },
-        tableHeader: {
-            flexDirection: 'row',
-            backgroundColor: colors.tableHeader,
-            borderBottomWidth: 2,
-            borderColor: colors.tableBorder,
-        },
-        tableRow: {
-            flexDirection: 'row',
-            borderBottomWidth: 1,
-            borderColor: colors.tableBorder,
-            alignItems: 'center',
-        },
-        cell: {
-            padding: 10,
-            borderRightWidth: 1,
-            borderColor: colors.tableBorder,
-            fontSize: 12,
-            color: colors.tableCell,
-            textAlign: 'center',
-        },
-        headerCell: {
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        headerText: {
-            fontWeight: 'bold',
-            color: colors.tableHeaderText,
-            textAlign: 'center',
-        },
-        cellMaHp: { width: 90 },
-        cellTenHp: { width: 140 },
-        cellTruongKhoa: { width: 120 },
-        cellSoLuong: { width: 90 },
-        cellSoLuongLop: { width: 90 },
-        cellSoLuongToiDa: { width: 100 },
-        cellTrangThai: { width: 150 },
-        cellAction: {
-            width: 160,
-            flexDirection: 'row',
-            justifyContent: 'space-around',
-            padding: 10,
-        },
-        actionBtnMopLop: {
-            backgroundColor: '#5cb85c',
-            paddingHorizontal: 8,
-            paddingVertical: 6,
-            borderRadius: 4,
-            marginRight: 4,
-        },
-        actionBtnXemDS: {
-            backgroundColor: '#337ab7',
-            paddingHorizontal: 8,
-            paddingVertical: 6,
-            borderRadius: 4,
-        },
-        actionBtnText: {
-            color: '#fff',
-            fontSize: 11,
-            fontWeight: 'bold',
-        },
-        // ── States ─────────────────────────────────────────────────────
-        centeredBox: {
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 20,
-        },
-        errorText: {
-            color: '#d9534f',
-            fontSize: 14,
-            textAlign: 'center',
-        },
-        emptyText: {
-            color: colors.textSecondary,
-            fontSize: 14,
-            textAlign: 'center',
-        },
-    });
+    const styles = createStyles(colors);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -252,7 +125,7 @@ export const AdminCourseRegistrationDetailsScreen = ({
                                         />
                                     </View>
                                     <View style={[styles.cell, styles.headerCell, styles.cellSoLuong]}>
-                                        <Text style={styles.headerText}>Số lượng ĐK</Text>
+                                        <Text style={styles.headerText}>SL ĐK Học phần</Text>
                                         <TextInput
                                             style={styles.headerFilterInput}
                                             placeholder="Lọc..."
@@ -266,7 +139,7 @@ export const AdminCourseRegistrationDetailsScreen = ({
                                         <Text style={styles.headerText}>Số lượng lớp</Text>
                                     </View>
                                     <View style={[styles.cell, styles.headerCell, styles.cellSoLuongToiDa]}>
-                                        <Text style={styles.headerText}>SL ĐK tối đa</Text>
+                                        <Text style={styles.headerText}>Hỗ trợ Max sinh viên</Text>
                                     </View>
                                     <View style={[styles.cell, styles.headerCell, styles.cellTrangThai]}>
                                         <Text style={styles.headerText}>Trạng thái</Text>
@@ -283,6 +156,8 @@ export const AdminCourseRegistrationDetailsScreen = ({
                                         trangThai = 'Chưa có lớp';
                                     } else if (stat.so_luong_dk_toi_da < stat.so_luong_dang_ky) {
                                         trangThai = 'Chưa phục vụ đủ sinh viên';
+                                    } else {
+                                        trangThai = 'Đã đáp ứng đủ';
                                     }
 
                                     return (
@@ -301,15 +176,25 @@ export const AdminCourseRegistrationDetailsScreen = ({
                                             <Text style={[styles.cell, styles.cellSoLuongToiDa]}>
                                                 {stat.so_luong_dk_toi_da}
                                             </Text>
-                                            <Text style={[styles.cell, styles.cellTrangThai, { color: trangThai ? '#d9534f' : colors.tableCell, fontWeight: trangThai ? 'bold' : 'normal' }]}>
+                                            <Text style={[styles.cell, styles.cellTrangThai, { color: trangThai === 'Đã đáp ứng đủ' ? '#5cb85c' : '#d9534f', fontWeight: 'bold' }]}>
                                                 {trangThai}
                                             </Text>
                                             <View style={[styles.cellAction, { borderRightWidth: 0, borderBottomWidth: 0 }]}>
-                                                <TouchableOpacity style={styles.actionBtnMopLop} onPress={() => {}}>
+                                                <TouchableOpacity
+                                                    style={styles.actionBtnMopLop}
+                                                    onPress={() => onNavigateToCreateClass?.(
+                                                        semesterName || String(semester),
+                                                        stat.truong_khoa,
+                                                        stat.ma_hp,
+                                                        stat.ten_hp
+                                                    )}
+                                                >
                                                     <Text style={styles.actionBtnText}>Mở lớp</Text>
                                                 </TouchableOpacity>
-                                                <TouchableOpacity style={styles.actionBtnXemDS} onPress={() => {}}>
-                                                    <Text style={styles.actionBtnText}>Xem danh sách lớp</Text>
+                                                <TouchableOpacity style={styles.actionBtnXemDS} onPress={() => toggleExpand(stat.course_id)}>
+                                                    <Text style={styles.actionBtnText}>
+                                                        {expandedCourseId === stat.course_id ? 'Đóng DS' : 'Xem DS lớp'}
+                                                    </Text>
                                                 </TouchableOpacity>
                                             </View>
                                         </View>
@@ -325,9 +210,105 @@ export const AdminCourseRegistrationDetailsScreen = ({
                                 )}
                             </View>
                         </ScrollView>
+
+                        {/* Expanded Table at the bottom (or inside row, but React Native ScrollView makes it tricky inside a horizontal ScrollView). 
+                            Here we render it as a separate section below the main table for the selected course */}
+                        {expandedCourseId && (
+                            <View style={[styles.subTableWrapper, { marginTop: 20 }]}>
+                                <Text style={{ fontWeight: 'bold', marginBottom: 10, color: colors.text }}>
+                                    Danh sách lớp của học phần {stats.find(s => s.course_id === expandedCourseId)?.ma_hp} - {stats.find(s => s.course_id === expandedCourseId)?.ten_hp}
+                                </Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                                    <View>
+                                        <View style={styles.subTableHeaderRow}>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>Mã lớp</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>Lớp kèm</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>Ghi chú</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>Thứ <Text style={{ color: 'red' }}>*</Text></Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>Tiết BD</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>Tiết KT</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>Buổi</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>Phòng học</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>Cần TN</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>TeachingType</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>SL Max</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText }]}>SLĐK</Text>
+                                            <Text style={[styles.subCell, { fontWeight: 'bold', color: colors.tableHeaderText, minWidth: 100 }]}>Hành động</Text>
+                                        </View>
+
+                                        {loadingClasses ? (
+                                            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
+                                        ) : expandedClasses.length === 0 ? (
+                                            <Text style={[styles.emptyText, { marginVertical: 20 }]}>Chưa có lớp học nào</Text>
+                                        ) : (
+                                            expandedClasses.map(cls => {
+                                                const detail = JSON.parse(cls.detail || '{}');
+                                                return (
+                                                    <View key={cls.id} style={styles.subTableRow}>
+                                                        <Text style={styles.subCell}>{detail.ma_lop}</Text>
+                                                        <Text style={styles.subCell}>{detail.ma_lop_kem !== 'NULL' ? detail.ma_lop_kem : ''}</Text>
+                                                        <Text style={styles.subCell}>{detail.ghi_chu !== 'NULL' ? detail.ghi_chu : ''}</Text>
+                                                        <Text style={styles.subCell}>{detail.thu}</Text>
+                                                        <Text style={styles.subCell}>{detail.tiet_bd}</Text>
+                                                        <Text style={styles.subCell}>{detail.tiet_kt}</Text>
+                                                        <Text style={styles.subCell}>{detail.buoi}</Text>
+                                                        <Text style={styles.subCell}>{detail.phong_hoc}</Text>
+                                                        <Text style={styles.subCell}>{detail.can_tn !== 'NULL' ? detail.can_tn : ''}</Text>
+                                                        <Text style={styles.subCell}>{detail.teaching_type !== 'NULL' ? detail.teaching_type : ''}</Text>
+                                                        <Text style={styles.subCell}>{cls.total_slots}</Text>
+                                                        <Text style={styles.subCell}>{cls.occupied_slots}</Text>
+                                                        <View style={[styles.subCell, { flexDirection: 'row', justifyContent: 'center', minWidth: 100 }]}>
+                                                            <TouchableOpacity
+                                                                style={[styles.subActionBtn, styles.editBtn]}
+                                                                onPress={() => {
+                                                                    if (onNavigateToEditClass) {
+                                                                        const courseStat = stats.find(s => s.course_id === expandedCourseId);
+                                                                        onNavigateToEditClass({
+                                                                            id: cls.id,
+                                                                            ky: semesterName || String(semester),
+                                                                            khoa_truong: courseStat?.truong_khoa || '',
+                                                                            ma_hp: courseStat?.ma_hp || '',
+                                                                            ten_hp: courseStat?.ten_hp || '',
+                                                                            ...detail,
+                                                                            sl_max: String(cls.total_slots)
+                                                                        });
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Text style={styles.actionBtnText}>Sửa</Text>
+                                                            </TouchableOpacity>
+                                                            <TouchableOpacity
+                                                                style={[styles.subActionBtn, styles.deleteBtn]}
+                                                                onPress={() => setClassToDelete(cls.id)}
+                                                            >
+                                                                <Text style={styles.actionBtnText}>Xoá</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                );
+                                            })
+                                        )}
+                                    </View>
+                                </ScrollView>
+                            </View>
+                        )}
                     </ScrollView>
                 </>
             )}
+
+            <AlarmTwoChoose
+                visible={classToDelete !== null}
+                message="Bạn có chắc chắn muốn xoá lớp học này? Hành động này không thể hoàn tác."
+                cancelText="Huỷ"
+                confirmText="Xoá"
+                onCancel={() => setClassToDelete(null)}
+                onConfirm={() => {
+                    if (classToDelete) {
+                        deleteClass(classToDelete);
+                        setClassToDelete(null);
+                    }
+                }}
+            />
         </SafeAreaView>
     );
 };

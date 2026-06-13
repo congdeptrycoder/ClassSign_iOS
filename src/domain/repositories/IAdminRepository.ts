@@ -6,4 +6,8 @@ import { CourseRegistrationStat } from '../entities/CourseRegistrationStat';
  */
 export interface IAdminRepository {
     getCourseRegistrationStats(semester: number): Promise<CourseRegistrationStat[]>;
+    createClassCourse(data: any): Promise<void>;
+    getClassesByCourse(courseId: number, semester: number): Promise<any[]>;
+    deleteClassCourse(id: number): Promise<void>;
+    updateClassCourse(id: number, data: any): Promise<void>;
 }
