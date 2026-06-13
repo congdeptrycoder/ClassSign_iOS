@@ -15,13 +15,16 @@ import {
     useAdminDashboardViewModel,
 } from '../../../interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
 import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
+import { DashboardHeader } from '../../components/DashboardHeader/DashboardHeader';
 import { useTheme } from '../../components/ThemeContext';
 import { createAdminStyles } from './styles';
 
 type AdminDashboardScreenProps = {
+    account?: Account | null;
     onLogout: () => void;
     onNavigateToEdit?: (item: ClassInfo) => void;
     onNavigateToDetails?: (semesterId: number, semesterName?: string) => void;
+    isVisible?: boolean;
 };
 
 const tableHeaders: { label: string, key: keyof ClassInfo | 'action' }[] = [
@@ -44,9 +47,11 @@ const tableHeaders: { label: string, key: keyof ClassInfo | 'action' }[] = [
 ];
 
 export const AdminDashboardScreen = ({
+    account,
     onLogout,
     onNavigateToEdit,
     onNavigateToDetails,
+    isVisible = true,
 }: AdminDashboardScreenProps) => {
     const {
         isProfileOpen,
@@ -80,10 +85,12 @@ export const AdminDashboardScreen = ({
         handleEditPhase,
         handleDeletePhase,
         handleCancelEdit,
-    } = useAdminDashboardViewModel(onNavigateToEdit, onLogout);
+    } = useAdminDashboardViewModel(onNavigateToEdit, onLogout, isVisible);
 
     const { colors } = useTheme();
     const styles = createAdminStyles(colors);
+
+    const adminLabel = `${account?.name ?? 'Admin'} - ${account?.id_card ?? account?.username ?? account?.id ?? ''}`;
 
     // Hàm lấy trạng thái giai đoạn
     const getPhaseStatus = (phase: RegistrationPhase) => {
@@ -93,37 +100,15 @@ export const AdminDashboardScreen = ({
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* ── Header Navbar ─────────────────────────────────── */}
-            <View style={styles.navBarHeader} testID="nav-bar-header">
-                <Image
-                    source={require('../../../../assets/image/hust-logo.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
-                <TouchableOpacity onPress={toggleProfile}>
-                    <Image
-                        source={require('../../../../assets/image/hust-logo.png')}
-                        style={styles.avatar}
-                        resizeMode="contain"
-                    />
-                </TouchableOpacity>
-            </View>
-
-            {/* ── User Profile Box ──────────────────────────────── */}
-            {isProfileOpen && (
-                <View style={styles.userInfoBox}>
-                    <Text style={styles.userInfoText}>Nguyễn Tuấn Anh - PDT3636</Text>
-                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                        <Text style={styles.logoutButtonText}>Đăng xuất</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
+            <DashboardHeader
+                titleLabel={adminLabel}
+                isProfileOpen={isProfileOpen}
+                toggleProfile={toggleProfile}
+                onLogout={handleLogout}
+            />
 
             {/* ── Main Scroll Container ─────────────────────────── */}
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                <Text style={styles.warningText}>
-                    ĐƯỢC PHÉP CHỈNH SỬA! Giai đoạn TEST
-                </Text>
 
                 {/* ── SECTION A: THIẾT LẬP GIAI ĐOẠN ĐĂNG KÝ (MỚI) ─────── */}
                 <Text style={styles.phaseTableTitle}>Thiết lập giai đoạn đăng ký học tập</Text>

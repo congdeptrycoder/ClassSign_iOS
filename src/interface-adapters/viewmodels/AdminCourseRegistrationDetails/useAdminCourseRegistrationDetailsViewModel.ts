@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CourseRegistrationStat } from '../../../domain/entities/CourseRegistrationStat';
 import { AdminRepositoryImpl } from '../../../infrastructure/repositories/AdminRepositoryImpl';
 import { GetCourseRegistrationStatsUseCase } from '../../../application/use-cases/GetCourseRegistrationStatsUseCase';
@@ -10,7 +10,7 @@ import { Alert } from 'react-native';
  * useAdminCourseRegistrationDetailsViewModel - ViewModel (MVVM)
  * Quản lý state và logic cho màn hình Chi tiết Đăng ký Học phần (Admin).
  */
-export const useAdminCourseRegistrationDetailsViewModel = (semester: number | null) => {
+export const useAdminCourseRegistrationDetailsViewModel = (semester: number | null, isVisible: boolean = true) => {
     const [stats, setStats] = useState<CourseRegistrationStat[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -24,26 +24,38 @@ export const useAdminCourseRegistrationDetailsViewModel = (semester: number | nu
     const [filterTruongKhoa, setFilterTruongKhoa] = useState('');
     const [filterSoLuong, setFilterSoLuong] = useState('');
 
+    const loadStats = async (sem: number) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const adminRepo = new AdminRepositoryImpl();
+            const useCase = new GetCourseRegistrationStatsUseCase(adminRepo);
+            const data = await useCase.execute(sem);
+            setStats(data);
+        } catch (err: any) {
+            setError(err.message || 'Có lỗi xảy ra khi tải dữ liệu thống kê');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!semester) return;
-
-        const loadStats = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const adminRepo = new AdminRepositoryImpl();
-                const useCase = new GetCourseRegistrationStatsUseCase(adminRepo);
-                const data = await useCase.execute(semester);
-                setStats(data);
-            } catch (err: any) {
-                setError(err.message || 'Có lỗi xảy ra khi tải dữ liệu thống kê');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadStats();
+        loadStats(semester);
     }, [semester]);
+
+    // Refetch data khi màn hình trở lại visible (sau khi edit/create)
+    const prevVisibleRef = useRef(isVisible);
+    useEffect(() => {
+        if (isVisible && !prevVisibleRef.current && semester) {
+            loadStats(semester);
+            // Nếu đang mở rộng 1 course, refetch danh sách lớp
+            if (expandedCourseId) {
+                loadClasses(expandedCourseId, semester);
+            }
+        }
+        prevVisibleRef.current = isVisible;
+    }, [isVisible]);
 
     const filteredStats = stats.filter(stat => {
         return (
@@ -54,25 +66,29 @@ export const useAdminCourseRegistrationDetailsViewModel = (semester: number | nu
         );
     });
 
-    const toggleExpand = async (courseId: number) => {
-        if (expandedCourseId === courseId) {
-            setExpandedCourseId(null);
-            setExpandedClasses([]);
-            return;
-        }
-        
-        setExpandedCourseId(courseId);
+    const loadClasses = async (courseId: number, sem: number) => {
         setLoadingClasses(true);
         try {
             const adminRepo = new AdminRepositoryImpl();
             const useCase = new GetClassesByCourseUseCase(adminRepo);
-            const classes = await useCase.execute(courseId, semester as number);
+            const classes = await useCase.execute(courseId, sem);
             setExpandedClasses(classes);
         } catch (err: any) {
             Alert.alert('Lỗi', err.message || 'Không thể tải danh sách lớp');
         } finally {
             setLoadingClasses(false);
         }
+    };
+
+    const toggleExpand = async (courseId: number) => {
+        if (expandedCourseId === courseId) {
+            setExpandedCourseId(null);
+            setExpandedClasses([]);
+            return;
+        }
+
+        setExpandedCourseId(courseId);
+        await loadClasses(courseId, semester as number);
     };
 
     const deleteClass = async (classId: number) => {

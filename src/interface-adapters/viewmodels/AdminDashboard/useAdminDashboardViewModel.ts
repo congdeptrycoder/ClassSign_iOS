@@ -1,5 +1,5 @@
 import { Alert } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
 import { RegistrationPhaseRepositoryImpl } from '../../../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
 import { ManageRegistrationPhases } from '../../../application/use-cases/ManageRegistrationPhases';
@@ -38,6 +38,7 @@ export interface ClassInfo {
 export const useAdminDashboardViewModel = (
     onNavigateToEdit?: (item: ClassInfo) => void,
     onLogout?: () => void,
+    isVisible: boolean = true,
 ) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -88,21 +89,30 @@ export const useAdminDashboardViewModel = (
     }, [phaseRepository]);
 
     // Fetch lớp học khi đổi selectedClassSemesterId
+    const fetchClasses = async (semId: number) => {
+        try {
+            const data = await apiClient.get<ClassInfo[]>(`/admin/classes/all?semester=${semId}`);
+            setClassesData(data);
+        } catch (error) {
+            logMessage('ERROR', 'Failed to fetch classes data', error);
+            setClassesData([]);
+        }
+    };
+
     useEffect(() => {
         if (!selectedClassSemesterId) return;
-
-        const fetchClasses = async () => {
-            try {
-                const data = await apiClient.get<ClassInfo[]>(`/admin/classes/all?semester=${selectedClassSemesterId}`);
-                setClassesData(data);
-            } catch (error) {
-                logMessage('ERROR', 'Failed to fetch classes data', error);
-                setClassesData([]);
-            }
-        };
-
-        fetchClasses();
+        fetchClasses(selectedClassSemesterId);
     }, [selectedClassSemesterId]);
+
+    // Refetch data khi màn hình trở lại visible (sau khi edit/create)
+    const prevVisibleRef = useRef(isVisible);
+    useEffect(() => {
+        if (isVisible && !prevVisibleRef.current && selectedClassSemesterId) {
+            logMessage('INFO', 'AdminDashboard trở lại visible, refetch data');
+            fetchClasses(selectedClassSemesterId);
+        }
+        prevVisibleRef.current = isVisible;
+    }, [isVisible]);
 
     const toggleProfile = () => {
         setIsProfileOpen(currentValue => !currentValue);

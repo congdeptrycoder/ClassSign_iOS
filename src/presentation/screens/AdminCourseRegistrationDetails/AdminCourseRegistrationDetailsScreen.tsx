@@ -20,6 +20,7 @@ type AdminCourseRegistrationDetailsScreenProps = {
     onGoBack: () => void;
     onNavigateToCreateClass?: (ky: string, truongKhoa: string, maHp: string, tenHp: string) => void;
     onNavigateToEditClass?: (classData: any) => void;
+    isVisible?: boolean;
 };
 
 export const AdminCourseRegistrationDetailsScreen = ({
@@ -28,6 +29,7 @@ export const AdminCourseRegistrationDetailsScreen = ({
     onGoBack,
     onNavigateToCreateClass,
     onNavigateToEditClass,
+    isVisible = true,
 }: AdminCourseRegistrationDetailsScreenProps) => {
     const { colors } = useTheme();
     const [classToDelete, setClassToDelete] = useState<number | null>(null);
@@ -49,7 +51,7 @@ export const AdminCourseRegistrationDetailsScreen = ({
         loadingClasses,
         toggleExpand,
         deleteClass,
-    } = useAdminCourseRegistrationDetailsViewModel(semester);
+    } = useAdminCourseRegistrationDetailsViewModel(semester, isVisible);
 
     const styles = createStyles(colors);
 

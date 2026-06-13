@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
+    FlatList,
+    Modal,
     SafeAreaView,
     ScrollView,
     Text,
@@ -8,23 +10,28 @@ import {
     View,
 } from 'react-native';
 import {
-    EditClassInitialData,
-    useAdminEditClassViewModel,
-} from '../../../interface-adapters/viewmodels/AdminEditClass/useAdminEditClassViewModel';
+    AdminClassFormData,
+    useAdminClassFormViewModel,
+} from '../../../interface-adapters/viewmodels/AdminClassForm/useAdminClassFormViewModel';
 import { useTheme } from '../../components/ThemeContext';
-import { createAdminEditStyles } from './styles';
+import { createAdminClassFormStyles } from './styles';
 
-type AdminEditClassScreenProps = {
-    initialData: EditClassInitialData;
+type AdminClassFormScreenProps = {
+    formData: AdminClassFormData;
     onGoBack: () => void;
 };
 
-export const AdminEditClassScreen = ({
-    initialData,
+/**
+ * AdminClassFormScreen — màn hình gộp cho Create và Edit lớp học.
+ * - mode='create': form trống, lưu bằng INSERT
+ * - mode='edit':   form điền sẵn, lưu bằng UPDATE
+ */
+export const AdminClassFormScreen = ({
+    formData,
     onGoBack,
-}: AdminEditClassScreenProps) => {
+}: AdminClassFormScreenProps) => {
     const { colors } = useTheme();
-    const styles = createAdminEditStyles(colors);
+    const styles = createAdminClassFormStyles(colors);
 
     const {
         ky,
@@ -43,9 +50,18 @@ export const AdminEditClassScreen = ({
         slMax, setSlMax,
         teachingType, setTeachingType,
         handleSave,
-    } = useAdminEditClassViewModel(initialData, onGoBack);
+    } = useAdminClassFormViewModel(formData, onGoBack);
 
+    const isEdit = formData.mode === 'edit';
+    const headerTitle = isEdit ? 'Chỉnh sửa Lớp học' : 'Khởi tạo Lớp học';
+    const saveBtnLabel = isEdit ? 'Lưu Thay Đổi' : 'Tạo Lớp';
+
+    // Style riêng cho input bị vô hiệu hoá
     const disabledInputStyle = [styles.input, { backgroundColor: colors.separator }];
+
+    // Dropdown state cho Buổi
+    const [isBuoiModalOpen, setIsBuoiModalOpen] = useState(false);
+    const buoiOptions = ['Sáng', 'Chiều'];
 
     return (
         <SafeAreaView style={styles.container}>
@@ -54,48 +70,33 @@ export const AdminEditClassScreen = ({
                 <TouchableOpacity onPress={onGoBack} style={styles.backBtn}>
                     <Text style={styles.backBtnText}>{'< Quay lại'}</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chỉnh sửa Lớp học</Text>
+                <Text style={styles.headerTitle}>{headerTitle}</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                
+
+                {/* ── Các trường chỉ đọc ──────────────────────────── */}
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Kỳ</Text>
-                    <TextInput
-                        style={disabledInputStyle}
-                        value={ky}
-                        editable={false}
-                    />
+                    <TextInput style={disabledInputStyle} value={ky} editable={false} />
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Trường/Khoa</Text>
-                    <TextInput
-                        style={disabledInputStyle}
-                        value={truong_khoa}
-                        editable={false}
-                    />
+                    <TextInput style={disabledInputStyle} value={truong_khoa} editable={false} />
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Mã HP</Text>
-                    <TextInput
-                        style={disabledInputStyle}
-                        value={ma_hp}
-                        editable={false}
-                    />
+                    <TextInput style={disabledInputStyle} value={ma_hp} editable={false} />
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Tên HP</Text>
-                    <TextInput
-                        style={disabledInputStyle}
-                        value={ten_hp}
-                        editable={false}
-                    />
+                    <TextInput style={disabledInputStyle} value={ten_hp} editable={false} />
                 </View>
 
-                {/* Các trường có thể chỉnh sửa */}
+                {/* ── Các trường có thể chỉnh sửa ─────────────────── */}
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Mã lớp <Text style={{ color: 'red' }}>*</Text></Text>
                     <TextInput
@@ -153,7 +154,6 @@ export const AdminEditClassScreen = ({
                             placeholderTextColor={colors.textSecondary}
                         />
                     </View>
-
                     <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
                         <Text style={styles.label}>Tiết KT <Text style={{ color: 'red' }}>*</Text></Text>
                         <TextInput
@@ -169,27 +169,14 @@ export const AdminEditClassScreen = ({
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Buổi <Text style={{ color: 'red' }}>*</Text></Text>
-                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 5 }}>
-                        <TouchableOpacity 
-                            style={[
-                                styles.input, 
-                                { flex: 1, alignItems: 'center', backgroundColor: buoi === 'Sáng' ? colors.primary : colors.card }
-                            ]}
-                            onPress={() => setBuoi('Sáng')}
-                        >
-                            <Text style={{ color: buoi === 'Sáng' ? 'white' : colors.text }}>Sáng</Text>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                            style={[
-                                styles.input, 
-                                { flex: 1, alignItems: 'center', backgroundColor: buoi === 'Chiều' ? colors.primary : colors.card }
-                            ]}
-                            onPress={() => setBuoi('Chiều')}
-                        >
-                            <Text style={{ color: buoi === 'Chiều' ? 'white' : colors.text }}>Chiều</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity
+                        style={[styles.input, { justifyContent: 'center' }]}
+                        onPress={() => setIsBuoiModalOpen(true)}
+                    >
+                        <Text style={{ color: buoi ? colors.inputText : colors.textSecondary }}>
+                            {buoi || 'Chọn buổi'}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -238,10 +225,41 @@ export const AdminEditClassScreen = ({
                 </View>
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                    <Text style={styles.saveBtnText}>Lưu Thay Đổi</Text>
+                    <Text style={styles.saveBtnText}>{saveBtnLabel}</Text>
                 </TouchableOpacity>
 
             </ScrollView>
+
+            {/* Modal dropdown cho Buổi */}
+            <Modal visible={isBuoiModalOpen} transparent animationType="fade">
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    onPress={() => setIsBuoiModalOpen(false)}
+                >
+                    <View style={styles.modalContent}>
+                        <FlatList
+                            data={buoiOptions}
+                            keyExtractor={item => item}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.modalItem}
+                                    onPress={() => {
+                                        setBuoi(item);
+                                        setIsBuoiModalOpen(false);
+                                    }}
+                                >
+                                    <Text style={[
+                                        styles.modalItemText,
+                                        buoi === item && { fontWeight: 'bold', color: colors.link },
+                                    ]}>
+                                        {item}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </SafeAreaView>
     );
 };

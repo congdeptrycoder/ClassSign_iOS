@@ -2,10 +2,10 @@ import { StyleSheet } from 'react-native';
 import { ThemeColors } from '../../../shared/types/theme.types';
 
 /**
- * createAdminEditStyles(colors) — Strategy Pattern.
- * Tạo style động dựa trên theme hiện tại cho AdminEditClass.
+ * createAdminClassFormStyles(colors) — Strategy Pattern.
+ * Tạo style động dựa trên theme hiện tại cho AdminClassFormScreen (dùng chung Create & Edit).
  */
-export const createAdminEditStyles = (colors: ThemeColors) =>
+export const createAdminClassFormStyles = (colors: ThemeColors) =>
     StyleSheet.create({
         container: {
             flex: 1,
@@ -65,5 +65,29 @@ export const createAdminEditStyles = (colors: ThemeColors) =>
             color: '#fff',
             fontWeight: 'bold',
             fontSize: 16,
+        },
+        // ── Modal dropdown ──────────────────────────────────────────────
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        modalContent: {
+            backgroundColor: colors.modalBackground,
+            width: '80%',
+            maxHeight: '60%',
+            borderRadius: 8,
+            padding: 10,
+        },
+        modalItem: {
+            paddingVertical: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.separator,
+        },
+        modalItemText: {
+            fontSize: 16,
+            color: colors.text,
+            textAlign: 'center',
         },
     });

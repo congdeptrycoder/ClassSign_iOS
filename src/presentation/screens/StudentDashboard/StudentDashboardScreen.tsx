@@ -16,6 +16,7 @@ import {
 } from '../../../interface-adapters/viewmodels/StudentDashboard/useStudentDashboardViewModel';
 import { AlarmOneChoose } from '../../components/alarm_one_choose';
 import { AlarmTwoChoose } from '../../components/alarm_two_choose';
+import { DashboardHeader } from '../../components/DashboardHeader/DashboardHeader';
 import { useTheme } from '../../components/ThemeContext';
 import { createStudentStyles } from './styles';
 
@@ -96,32 +97,12 @@ export const StudentDashboardScreen = ({
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                <View style={styles.navBarHeader} testID="nav-bar-header">
-                    <Image
-                        source={require('../../../../assets/image/hust-logo.png')}
-                        style={styles.logo}
-                        resizeMode="contain"
-                    />
-                    <TouchableOpacity onPress={toggleUserInfo}>
-                        <Image
-                            source={require('../../../../assets/image/hust-logo.png')}
-                            style={styles.avatar}
-                            resizeMode="contain"
-                        />
-                    </TouchableOpacity>
-                </View>
-
-                {isUserInfoVisible && (
-                    <View style={styles.userInfoBox}>
-                        <Text style={styles.userInfoText}>{studentLabel}</Text>
-                        <TouchableOpacity
-                            style={styles.logoutButton}
-                            onPress={handleLogout}
-                        >
-                            <Text style={styles.logoutButtonText}>Đăng xuất</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
+                <DashboardHeader
+                    titleLabel={studentLabel}
+                    isProfileOpen={isUserInfoVisible}
+                    toggleProfile={toggleUserInfo}
+                    onLogout={handleLogout}
+                />
 
                 <ScrollView
                     style={styles.contentContainer}
