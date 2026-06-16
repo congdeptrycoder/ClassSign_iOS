@@ -13,6 +13,7 @@ const {
     deleteRegisteredCourse,
     searchClassSuggestions,
     searchCourseSuggestions,
+    getClassesForCourse,
 } = require('../services/studentRegistrationService');
 
 const router = express.Router();
@@ -134,6 +135,23 @@ router.get('/:studentId/class-suggestions', (req, res) => {
     } catch (err) {
         logger.error('Lỗi khi tìm gợi ý lớp học phần', { error: err.message });
         return handleRouteError(res, err, 'Không thể tìm gợi ý lớp học phần.');
+    }
+});
+
+router.get('/:studentId/courses/:courseId/classes', (req, res) => {
+    try {
+        const db = getDb();
+        const courseId = Number(req.params.courseId);
+        if (!Number.isInteger(courseId)) {
+            throw new Error('Mã học phần không hợp lệ.');
+        }
+        return sendSuccess(
+            res,
+            getClassesForCourse(db, parseStudentId(req), courseId)
+        );
+    } catch (err) {
+        logger.error('Lỗi khi lấy danh sách lớp học phần', { error: err.message });
+        return handleRouteError(res, err, 'Không thể lấy danh sách lớp học phần.');
     }
 });
 

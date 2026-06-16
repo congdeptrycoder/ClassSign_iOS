@@ -62,6 +62,11 @@ export const StudentDashboardScreen = ({
         currentSemesterName,
         studentStatus,
         totalCredits,
+        expandedCourseIds,
+        courseClassesData,
+        isLoadingClasses,
+        toggleCourseExpansion,
+        handleRegisterClassSection,
     } = useStudentDashboardViewModel(onLogout, account?.id ?? 1, onViewCurriculum);
 
     const { colors } = useTheme();
@@ -242,6 +247,7 @@ export const StudentDashboardScreen = ({
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                     <View style={styles.table}>
                                         <View style={styles.tableHeader}>
+                                            <Text style={[styles.headerCell, styles.cellExpand]}></Text>
                                             <Text style={[styles.headerCell, styles.cellId]}>ID</Text>
                                             <Text style={[styles.headerCell, styles.cellCode]}>Mã HP</Text>
                                             <Text style={[styles.headerCell, styles.cellName]}>Tên học phần</Text>
@@ -250,22 +256,94 @@ export const StudentDashboardScreen = ({
                                             <Text style={[styles.headerCell, styles.cellAction]}>Thao tác</Text>
                                         </View>
                                         {registeredSubjects.map((item: RegisteredSubject) => (
-                                            <View key={item.id} style={styles.tableRow}>
-                                                <Text style={[styles.cell, styles.cellId]}>{item.id}</Text>
-                                                <Text style={[styles.cell, styles.cellCode, styles.courseCodeText]}>{item.code}</Text>
-                                                <Text style={[styles.cell, styles.cellName]}>{item.name}</Text>
-                                                <View style={[styles.cellStatus, styles.tableStatusCell]}>
-                                                    <Text style={[
-                                                        styles.tableStatusText,
-                                                        getRegistrationStatusStyle(item.rawStatus),
-                                                    ]}>
-                                                        {item.status}
-                                                    </Text>
+                                            <View key={item.id}>
+                                                <View style={[styles.tableRow, expandedCourseIds.has(item.courseId) && styles.expandedRow]}>
+                                                    <TouchableOpacity style={[styles.cell, styles.cellExpand]} onPress={() => toggleCourseExpansion(item.courseId)}>
+                                                        <Text style={{ fontSize: 12 }}>{expandedCourseIds.has(item.courseId) ? '▼' : '▶'}</Text>
+                                                    </TouchableOpacity>
+                                                    <Text style={[styles.cell, styles.cellId]}>{item.id}</Text>
+                                                    <Text style={[styles.cell, styles.cellCode, styles.courseCodeText]}>{item.code}</Text>
+                                                    <Text style={[styles.cell, styles.cellName]}>{item.name}</Text>
+                                                    <View style={[styles.cellStatus, styles.tableStatusCell]}>
+                                                        <Text style={[
+                                                            styles.tableStatusText,
+                                                            getRegistrationStatusStyle(item.rawStatus),
+                                                        ]}>
+                                                            {item.status}
+                                                        </Text>
+                                                    </View>
+                                                    <Text style={[styles.cell, styles.cellCredits]}>{item.credits}</Text>
+                                                    <TouchableOpacity style={[styles.cell, styles.cellAction]} onPress={() => handleRequestDeleteCourse(item)}>
+                                                        <Text style={{color: 'red'}}>Xoá</Text>
+                                                    </TouchableOpacity>
                                                 </View>
-                                                <Text style={[styles.cell, styles.cellCredits]}>{item.credits}</Text>
-                                                <TouchableOpacity style={[styles.cell, styles.cellAction]} onPress={() => handleRequestDeleteCourse(item)}>
-                                                    <Text style={{color: 'red'}}>Xoá</Text>
-                                                </TouchableOpacity>
+                                                {expandedCourseIds.has(item.courseId) && (
+                                                    <View style={styles.subTableContainer}>
+                                                        <Text style={styles.subTableTitle}>Danh sách lớp học phần</Text>
+                                                        {isLoadingClasses[item.courseId] ? (
+                                                            <Text style={{ padding: 10 }}>Đang tải...</Text>
+                                                        ) : (
+                                                            <View style={styles.subTable}>
+                                                                <View style={styles.tableHeader}>
+                                                                    <Text style={[styles.headerCell, styles.subCellCode]}>Mã Lớp</Text>
+                                                                    <Text style={[styles.headerCell, styles.subCellDetail]}>Chi tiết lịch học</Text>
+                                                                    <Text style={[styles.headerCell, styles.subCellSlots]}>Số chỗ</Text>
+                                                                    {activePhase?.type === 'class' && <Text style={[styles.headerCell, styles.subCellAction]}>Hành động</Text>}
+                                                                </View>
+                                                                {courseClassesData[item.courseId]?.length > 0 ? (
+                                                                    courseClassesData[item.courseId].map(cls => {
+                                                                        let parsed: any = {};
+                                                                        try { parsed = JSON.parse(cls.detail || '{}'); } catch {}
+                                                                        const isBlocked = cls.occupiedSlots >= cls.totalSlots;
+                                                                        return (
+                                                                            <View key={cls.id} style={styles.tableRow}>
+                                                                                <Text style={[styles.cell, styles.subCellCode]}>{parsed.ma_lop || cls.id}</Text>
+                                                                                <View style={[styles.cell, styles.subCellDetail, { alignItems: 'flex-start' }]}>
+                                                                                    {(() => {
+                                                                                        if (Array.isArray(parsed)) {
+                                                                                            return parsed.map((s: any, idx: number) => (
+                                                                                                <Text key={idx} style={{fontSize: 11}}>{s.day?.replace('T', 'Thứ ')} - Tiết {Array.isArray(s.periods) ? s.periods.join(', ') : s.period}</Text>
+                                                                                            ));
+                                                                                        } else if (parsed.slots && Array.isArray(parsed.slots)) {
+                                                                                            return parsed.slots.map((s: any, idx: number) => (
+                                                                                                <Text key={idx} style={{fontSize: 11}}>{s.day?.replace('T', 'Thứ ')} - Tiết {Array.isArray(s.periods) ? s.periods.join(', ') : s.period}</Text>
+                                                                                            ));
+                                                                                        } else if (parsed.thu && parsed.tiet_bd && parsed.tiet_kt) {
+                                                                                            return (
+                                                                                                <Text style={{fontSize: 11}}>Thứ {parsed.thu} - Tiết {parsed.tiet_bd}-{parsed.tiet_kt} {parsed.phong_hoc ? `(${parsed.phong_hoc})` : ''}</Text>
+                                                                                            );
+                                                                                        }
+                                                                                        return <Text style={{fontSize: 11}}>{cls.detail}</Text>;
+                                                                                    })()}
+                                                                                </View>
+                                                                                <View style={[styles.cell, styles.subCellSlots]}>
+                                                                                    <Text style={[styles.suggestionStatus, isBlocked ? styles.statusBlocked : styles.statusAvailable, { paddingVertical: 2, paddingHorizontal: 6, fontSize: 10, alignSelf: 'center', marginTop: 0 }]}>
+                                                                                        {cls.occupiedSlots}/{cls.totalSlots}
+                                                                                    </Text>
+                                                                                </View>
+                                                                                {activePhase?.type === 'class' && (
+                                                                                    <View style={[styles.cell, styles.subCellAction]}>
+                                                                                        <TouchableOpacity 
+                                                                                            style={[styles.registerButton, { height: 26, paddingHorizontal: 8, borderRadius: 4 }, (isSubmitting || isBlocked) && styles.registerButtonDisabled]}
+                                                                                            onPress={() => handleRegisterClassSection(cls.id, item.code)}
+                                                                                            disabled={isSubmitting || isBlocked}
+                                                                                        >
+                                                                                            <Text style={[styles.registerButtonText, { fontSize: 11 }]}>Đăng ký</Text>
+                                                                                        </TouchableOpacity>
+                                                                                    </View>
+                                                                                )}
+                                                                            </View>
+                                                                        );
+                                                                    })
+                                                                ) : (
+                                                                    <View style={styles.tableRow}>
+                                                                        <Text style={[styles.cell, { flex: 1, textAlign: 'center' }]}>Không có lớp học phần nào đang mở cho học phần này</Text>
+                                                                    </View>
+                                                                )}
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                )}
                                             </View>
                                         ))}
                                     </View>

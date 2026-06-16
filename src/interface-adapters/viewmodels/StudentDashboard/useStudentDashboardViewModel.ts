@@ -89,6 +89,10 @@ export const useStudentDashboardViewModel = (
     const [currentSemesterName, setCurrentSemesterName] = useState<string | null>(null);
     const [studentStatus, setStudentStatus] = useState<string>('study');
 
+    const [expandedCourseIds, setExpandedCourseIds] = useState<Set<number>>(new Set());
+    const [courseClassesData, setCourseClassesData] = useState<Record<number, ClassSuggestion[]>>({});
+    const [isLoadingClasses, setIsLoadingClasses] = useState<Record<number, boolean>>({});
+
     const [deletePopupConfig, setDeletePopupConfig] = useState<{ visible: boolean; subject: RegisteredSubject | null } | null>(null);
 
     const closePopup = () => setPopupConfig(null);
@@ -303,6 +307,42 @@ export const useStudentDashboardViewModel = (
         }
     };
 
+    const toggleCourseExpansion = async (courseId: number) => {
+        const newExpanded = new Set(expandedCourseIds);
+        if (newExpanded.has(courseId)) {
+            newExpanded.delete(courseId);
+            setExpandedCourseIds(newExpanded);
+        } else {
+            newExpanded.add(courseId);
+            setExpandedCourseIds(newExpanded);
+
+            if (!courseClassesData[courseId]) {
+                setIsLoadingClasses(prev => ({ ...prev, [courseId]: true }));
+                try {
+                    const classes = await registrationUseCase.getCourseClasses(studentId, courseId);
+                    setCourseClassesData(prev => ({ ...prev, [courseId]: classes }));
+                } catch (error) {
+                    logMessage('ERROR', `Failed to load classes for course ${courseId}`, error);
+                } finally {
+                    setIsLoadingClasses(prev => ({ ...prev, [courseId]: false }));
+                }
+            }
+        }
+    };
+
+    const handleRegisterClassSection = async (classId: number, courseCode: string) => {
+        try {
+            setIsSubmitting(true);
+            await registrationUseCase.registerClass(studentId, classId);
+            Alert.alert('Thành công', `Đã đăng ký lớp học phần cho học phần ${courseCode}.`);
+            await reloadStudentData();
+        } catch (error: any) {
+            Alert.alert('Cảnh báo', error.message || 'Đăng ký thất bại.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return {
         isUserInfoVisible,
         toggleUserInfo,
@@ -330,5 +370,10 @@ export const useStudentDashboardViewModel = (
         currentSemesterName,
         studentStatus,
         totalCredits: registeredSubjects.reduce((sum, item) => sum + item.credits, 0),
+        expandedCourseIds,
+        courseClassesData,
+        isLoadingClasses,
+        toggleCourseExpansion,
+        handleRegisterClassSection,
     };
 };

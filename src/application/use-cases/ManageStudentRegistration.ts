@@ -40,4 +40,8 @@ export class ManageStudentRegistration {
   deleteRegisteredCourse(studentId: number, courseId: number, semester: string) {
     return this.repository.deleteRegisteredCourse(studentId, courseId, semester);
   }
+
+  getCourseClasses(studentId: number, courseId: number) {
+    return this.repository.getCourseClasses(studentId, courseId);
+  }
 }
