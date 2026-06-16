@@ -312,9 +312,7 @@ export const AdminDashboardScreen = ({
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.uploadSection}>
-                    <Text style={styles.uploadHint}>*Sử dụng ứng dụng máy tính để thực hiện upload hàng loạt lớp học</Text>
-                </View>
+
 
                 <View style={styles.tableSection}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>

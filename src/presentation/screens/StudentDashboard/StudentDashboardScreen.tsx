@@ -150,95 +150,97 @@ export const StudentDashboardScreen = ({
                         </View>
                     ) : (
                         <View testID="active-phase-container">
-                            <View style={styles.registrationPanel}>
-                                <View style={styles.panelHeader}>
-                                    <View style={styles.panelTitleBlock}>
-                                        <Text style={styles.panelTitle}>{searchLabel}</Text>
-                                        <Text style={styles.panelSubtitle}>{studentLabel}</Text>
+                            {activePhase.type === 'course' && (
+                                <View style={styles.registrationPanel}>
+                                    <View style={styles.panelHeader}>
+                                        <View style={styles.panelTitleBlock}>
+                                            <Text style={styles.panelTitle}>{searchLabel}</Text>
+                                            <Text style={styles.panelSubtitle}>{studentLabel}</Text>
+                                        </View>
+                                        <TouchableOpacity
+                                            style={styles.outlineActionButton}
+                                            onPress={handleViewCurriculum}
+                                        >
+                                            <Text style={styles.outlineActionButtonText}>Xem CTĐT</Text>
+                                        </TouchableOpacity>
                                     </View>
-                                    <TouchableOpacity
-                                        style={styles.outlineActionButton}
-                                        onPress={handleViewCurriculum}
-                                    >
-                                        <Text style={styles.outlineActionButtonText}>Xem CTĐT</Text>
-                                    </TouchableOpacity>
-                                </View>
 
-                                <View style={styles.searchRow}>
-                                    <TextInput
-                                        style={styles.searchInput}
-                                        placeholder={placeholder}
-                                        value={searchQuery}
-                                        onChangeText={setSearchQuery}
-                                        onFocus={() => setIsSuggestionVisible(true)}
-                                        placeholderTextColor={colors.textSecondary}
-                                        testID="subject-search-input"
-                                    />
+                                    <View style={styles.searchRow}>
+                                        <TextInput
+                                            style={styles.searchInput}
+                                            placeholder={placeholder}
+                                            value={searchQuery}
+                                            onChangeText={setSearchQuery}
+                                            onFocus={() => setIsSuggestionVisible(true)}
+                                            placeholderTextColor={colors.textSecondary}
+                                            testID="subject-search-input"
+                                        />
 
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.registerButton,
-                                            isSubmitting && styles.registerButtonDisabled,
-                                        ]}
-                                        onPress={handleRegisterSubject}
-                                        disabled={isSubmitting}
-                                        testID="register-button"
-                                    >
-                                        <Text style={styles.registerButtonText}>
-                                            {isSubmitting ? 'Đang đăng ký...' : 'Đăng ký'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                {isSuggestionVisible && (
-                                    <View style={styles.suggestionsContainer} testID="suggestions-dropdown">
-                                        {isSearching && (
-                                            <Text style={styles.suggestionStateText}>Đang tìm...</Text>
-                                        )}
-                                        {!isSearching && searchError && (
-                                            <Text style={styles.suggestionErrorText}>{searchError}</Text>
-                                        )}
-                                        {!isSearching && !searchError && allowedSuggestions.length === 0 && (
-                                            <Text style={styles.suggestionStateText}>Không có gợi ý phù hợp</Text>
-                                        )}
-                                        {!isSearching && !searchError && allowedSuggestions.length > 0 && (
-                                            <ScrollView
-                                                nestedScrollEnabled
-                                                keyboardShouldPersistTaps="handled"
-                                                showsVerticalScrollIndicator={false}
-                                            >
-                                                {allowedSuggestions.map((item, index) => (
-                                                    <TouchableOpacity
-                                                        key={`${item.code}-${index}`}
-                                                        style={styles.suggestionItem}
-                                                        onPress={() => handleSelectSuggestion(item)}
-                                                    >
-                                                        <View style={styles.suggestionMainRow}>
-                                                            <Text style={styles.suggestionCode}>{item.code}</Text>
-                                                            <Text style={styles.suggestionCredits}>{item.credits} TC</Text>
-                                                        </View>
-                                                        <Text style={styles.suggestionText}>{item.name}</Text>
-                                                        {'statusLabel' in item && (
-                                                            <Text style={[
-                                                                styles.suggestionStatus,
-                                                                item.status === 'registered'
-                                                                    ? styles.statusRegistered
-                                                                    : item.status === 'completed'
-                                                                        ? styles.statusCompleted
-                                                                        : item.status === 'blocked'
-                                                                            ? styles.statusBlocked
-                                                                            : styles.statusAvailable,
-                                                            ]}>
-                                                                {item.statusLabel}
-                                                            </Text>
-                                                        )}
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </ScrollView>
-                                        )}
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.registerButton,
+                                                isSubmitting && styles.registerButtonDisabled,
+                                            ]}
+                                            onPress={handleRegisterSubject}
+                                            disabled={isSubmitting}
+                                            testID="register-button"
+                                        >
+                                            <Text style={styles.registerButtonText}>
+                                                {isSubmitting ? 'Đang đăng ký...' : 'Đăng ký'}
+                                            </Text>
+                                        </TouchableOpacity>
                                     </View>
-                                )}
-                            </View>
+
+                                    {isSuggestionVisible && (
+                                        <View style={styles.suggestionsContainer} testID="suggestions-dropdown">
+                                            {isSearching && (
+                                                <Text style={styles.suggestionStateText}>Đang tìm...</Text>
+                                            )}
+                                            {!isSearching && searchError && (
+                                                <Text style={styles.suggestionErrorText}>{searchError}</Text>
+                                            )}
+                                            {!isSearching && !searchError && allowedSuggestions.length === 0 && (
+                                                <Text style={styles.suggestionStateText}>Không có gợi ý phù hợp</Text>
+                                            )}
+                                            {!isSearching && !searchError && allowedSuggestions.length > 0 && (
+                                                <ScrollView
+                                                    nestedScrollEnabled
+                                                    keyboardShouldPersistTaps="handled"
+                                                    showsVerticalScrollIndicator={false}
+                                                >
+                                                    {allowedSuggestions.map((item, index) => (
+                                                        <TouchableOpacity
+                                                            key={`${item.code}-${index}`}
+                                                            style={styles.suggestionItem}
+                                                            onPress={() => handleSelectSuggestion(item)}
+                                                        >
+                                                            <View style={styles.suggestionMainRow}>
+                                                                <Text style={styles.suggestionCode}>{item.code}</Text>
+                                                                <Text style={styles.suggestionCredits}>{item.credits} TC</Text>
+                                                            </View>
+                                                            <Text style={styles.suggestionText}>{item.name}</Text>
+                                                            {'statusLabel' in item && (
+                                                                <Text style={[
+                                                                    styles.suggestionStatus,
+                                                                    item.status === 'registered'
+                                                                        ? styles.statusRegistered
+                                                                        : item.status === 'completed'
+                                                                            ? styles.statusCompleted
+                                                                            : item.status === 'blocked'
+                                                                                ? styles.statusBlocked
+                                                                                : styles.statusAvailable,
+                                                                ]}>
+                                                                    {item.statusLabel}
+                                                                </Text>
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </ScrollView>
+                                            )}
+                                        </View>
+                                    )}
+                                </View>
+                            )}
 
                             <View style={styles.tableContainer} testID="registration-table">
                                 <Text style={styles.sectionTitle}>
@@ -247,7 +249,7 @@ export const StudentDashboardScreen = ({
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                     <View style={styles.table}>
                                         <View style={styles.tableHeader}>
-                                            <Text style={[styles.headerCell, styles.cellExpand]}></Text>
+                                            <Text style={[styles.headerCell, styles.cellExpand]}>DS lớp</Text>
                                             <Text style={[styles.headerCell, styles.cellId]}>ID</Text>
                                             <Text style={[styles.headerCell, styles.cellCode]}>Mã HP</Text>
                                             <Text style={[styles.headerCell, styles.cellName]}>Tên học phần</Text>
@@ -274,7 +276,7 @@ export const StudentDashboardScreen = ({
                                                     </View>
                                                     <Text style={[styles.cell, styles.cellCredits]}>{item.credits}</Text>
                                                     <TouchableOpacity style={[styles.cell, styles.cellAction]} onPress={() => handleRequestDeleteCourse(item)}>
-                                                        <Text style={{color: 'red'}}>Xoá</Text>
+                                                        <Text style={{ color: 'red' }}>Xoá</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                                 {expandedCourseIds.has(item.courseId) && (
@@ -293,7 +295,7 @@ export const StudentDashboardScreen = ({
                                                                 {courseClassesData[item.courseId]?.length > 0 ? (
                                                                     courseClassesData[item.courseId].map(cls => {
                                                                         let parsed: any = {};
-                                                                        try { parsed = JSON.parse(cls.detail || '{}'); } catch {}
+                                                                        try { parsed = JSON.parse(cls.detail || '{}'); } catch { }
                                                                         const isBlocked = cls.occupiedSlots >= cls.totalSlots;
                                                                         return (
                                                                             <View key={cls.id} style={styles.tableRow}>
@@ -302,18 +304,18 @@ export const StudentDashboardScreen = ({
                                                                                     {(() => {
                                                                                         if (Array.isArray(parsed)) {
                                                                                             return parsed.map((s: any, idx: number) => (
-                                                                                                <Text key={idx} style={{fontSize: 11}}>{s.day?.replace('T', 'Thứ ')} - Tiết {Array.isArray(s.periods) ? s.periods.join(', ') : s.period}</Text>
+                                                                                                <Text key={idx} style={{ fontSize: 11 }}>{s.day?.replace('T', 'Thứ ')} - Tiết {Array.isArray(s.periods) ? s.periods.join(', ') : s.period}</Text>
                                                                                             ));
                                                                                         } else if (parsed.slots && Array.isArray(parsed.slots)) {
                                                                                             return parsed.slots.map((s: any, idx: number) => (
-                                                                                                <Text key={idx} style={{fontSize: 11}}>{s.day?.replace('T', 'Thứ ')} - Tiết {Array.isArray(s.periods) ? s.periods.join(', ') : s.period}</Text>
+                                                                                                <Text key={idx} style={{ fontSize: 11 }}>{s.day?.replace('T', 'Thứ ')} - Tiết {Array.isArray(s.periods) ? s.periods.join(', ') : s.period}</Text>
                                                                                             ));
                                                                                         } else if (parsed.thu && parsed.tiet_bd && parsed.tiet_kt) {
                                                                                             return (
-                                                                                                <Text style={{fontSize: 11}}>Thứ {parsed.thu} - Tiết {parsed.tiet_bd}-{parsed.tiet_kt} {parsed.phong_hoc ? `(${parsed.phong_hoc})` : ''}</Text>
+                                                                                                <Text style={{ fontSize: 11 }}>Thứ {parsed.thu} - Tiết {parsed.tiet_bd}-{parsed.tiet_kt} {parsed.phong_hoc ? `(${parsed.phong_hoc})` : ''}</Text>
                                                                                             );
                                                                                         }
-                                                                                        return <Text style={{fontSize: 11}}>{cls.detail}</Text>;
+                                                                                        return <Text style={{ fontSize: 11 }}>{cls.detail}</Text>;
                                                                                     })()}
                                                                                 </View>
                                                                                 <View style={[styles.cell, styles.subCellSlots]}>
@@ -323,7 +325,7 @@ export const StudentDashboardScreen = ({
                                                                                 </View>
                                                                                 {activePhase?.type === 'class' && (
                                                                                     <View style={[styles.cell, styles.subCellAction]}>
-                                                                                        <TouchableOpacity 
+                                                                                        <TouchableOpacity
                                                                                             style={[styles.registerButton, { height: 26, paddingHorizontal: 8, borderRadius: 4 }, (isSubmitting || isBlocked) && styles.registerButtonDisabled]}
                                                                                             onPress={() => handleRegisterClassSection(cls.id, item.code)}
                                                                                             disabled={isSubmitting || isBlocked}
@@ -354,9 +356,9 @@ export const StudentDashboardScreen = ({
                                     </Text>
                                     <Text style={{ fontSize: 14, color: colors.error, fontStyle: 'italic' }}>
                                         {studentStatus === 'study' ? '* Bạn được đăng ký tối đa 24 TC' :
-                                         studentStatus === 'study_cc1' ? '* Bạn đang bị cảnh cáo mức 1. Chỉ được đăng ký tối đa 20 TC' :
-                                         studentStatus === 'study_cc2' ? '* Bạn đang bị cảnh cáo mức 2. Chỉ được đăng ký tối đa 16 TC' :
-                                         studentStatus === 'study_cc3' ? '* Bạn đang bị cảnh cáo mức 3. Chỉ được đăng ký tối đa 12 TC' : ''}
+                                            studentStatus === 'study_cc1' ? '* Bạn đang bị cảnh cáo mức 1. Chỉ được đăng ký tối đa 20 TC' :
+                                                studentStatus === 'study_cc2' ? '* Bạn đang bị cảnh cáo mức 2. Chỉ được đăng ký tối đa 16 TC' :
+                                                    studentStatus === 'study_cc3' ? '* Bạn đang bị cảnh cáo mức 3. Chỉ được đăng ký tối đa 12 TC' : ''}
                                     </Text>
                                 </View>
                             </View>
