@@ -14,6 +14,7 @@ const {
     searchClassSuggestions,
     searchCourseSuggestions,
     getClassesForCourse,
+    cancelClassRegistration,
 } = require('../services/studentRegistrationService');
 
 const router = express.Router();
@@ -176,6 +177,24 @@ router.get('/:studentId/timetable', (req, res) => {
     } catch (err) {
         logger.error('Lỗi khi lấy thời khóa biểu', { error: err.message });
         return handleRouteError(res, err, 'Không thể lấy thời khóa biểu.');
+    }
+});
+
+router.delete('/:studentId/class-registrations', (req, res) => {
+    try {
+        const db = getDb();
+        const classId = Number(req.query.classId);
+        if (!classId) {
+            throw new Error('Thiếu thông tin classId');
+        }
+        return sendSuccess(
+            res,
+            cancelClassRegistration(db, parseStudentId(req), classId),
+            'Huỷ đăng ký lớp học phần thành công.'
+        );
+    } catch (err) {
+        logger.error('Lỗi khi huỷ đăng ký lớp học phần', { error: err.message });
+        return handleRouteError(res, err, 'Không thể huỷ đăng ký lớp học phần.');
     }
 });
 

@@ -67,6 +67,8 @@ export const StudentDashboardScreen = ({
         isLoadingClasses,
         toggleCourseExpansion,
         handleRegisterClassSection,
+        registeredClasses,
+        handleCancelClassSection,
     } = useStudentDashboardViewModel(onLogout, account?.id ?? 1, onViewCurriculum);
 
     const { colors } = useTheme();
@@ -255,7 +257,7 @@ export const StudentDashboardScreen = ({
                                             <Text style={[styles.headerCell, styles.cellName]}>Tên học phần</Text>
                                             <Text style={[styles.headerCell, styles.cellStatus]}>TT đăng ký</Text>
                                             <Text style={[styles.headerCell, styles.cellCredits]}>Số TC</Text>
-                                            <Text style={[styles.headerCell, styles.cellAction]}>Thao tác</Text>
+                                            {activePhase?.type === 'course' && <Text style={[styles.headerCell, styles.cellAction]}>Thao tác</Text>}
                                         </View>
                                         {registeredSubjects.map((item: RegisteredSubject) => (
                                             <View key={item.id}>
@@ -275,9 +277,11 @@ export const StudentDashboardScreen = ({
                                                         </Text>
                                                     </View>
                                                     <Text style={[styles.cell, styles.cellCredits]}>{item.credits}</Text>
-                                                    <TouchableOpacity style={[styles.cell, styles.cellAction]} onPress={() => handleRequestDeleteCourse(item)}>
-                                                        <Text style={{ color: 'red' }}>Xoá</Text>
-                                                    </TouchableOpacity>
+                                                    {activePhase?.type === 'course' && (
+                                                        <TouchableOpacity style={[styles.cell, styles.cellAction]} onPress={() => handleRequestDeleteCourse(item)}>
+                                                            <Text style={{ color: 'red' }}>Xoá</Text>
+                                                        </TouchableOpacity>
+                                                    )}
                                                 </View>
                                                 {expandedCourseIds.has(item.courseId) && (
                                                     <View style={styles.subTableContainer}>
@@ -285,64 +289,78 @@ export const StudentDashboardScreen = ({
                                                         {isLoadingClasses[item.courseId] ? (
                                                             <Text style={{ padding: 10 }}>Đang tải...</Text>
                                                         ) : (
-                                                            <View style={styles.subTable}>
-                                                                <View style={styles.tableHeader}>
-                                                                    <Text style={[styles.headerCell, styles.subCellCode]}>Mã Lớp</Text>
-                                                                    <Text style={[styles.headerCell, styles.subCellDetail]}>Chi tiết lịch học</Text>
-                                                                    <Text style={[styles.headerCell, styles.subCellSlots]}>Số chỗ</Text>
-                                                                    {activePhase?.type === 'class' && <Text style={[styles.headerCell, styles.subCellAction]}>Hành động</Text>}
-                                                                </View>
-                                                                {courseClassesData[item.courseId]?.length > 0 ? (
-                                                                    courseClassesData[item.courseId].map(cls => {
-                                                                        let parsed: any = {};
-                                                                        try { parsed = JSON.parse(cls.detail || '{}'); } catch { }
-                                                                        const isBlocked = cls.occupiedSlots >= cls.totalSlots;
-                                                                        return (
-                                                                            <View key={cls.id} style={styles.tableRow}>
-                                                                                <Text style={[styles.cell, styles.subCellCode]}>{parsed.ma_lop || cls.id}</Text>
-                                                                                <View style={[styles.cell, styles.subCellDetail, { alignItems: 'flex-start' }]}>
-                                                                                    {(() => {
-                                                                                        if (Array.isArray(parsed)) {
-                                                                                            return parsed.map((s: any, idx: number) => (
-                                                                                                <Text key={idx} style={{ fontSize: 11 }}>{s.day?.replace('T', 'Thứ ')} - Tiết {Array.isArray(s.periods) ? s.periods.join(', ') : s.period}</Text>
-                                                                                            ));
-                                                                                        } else if (parsed.slots && Array.isArray(parsed.slots)) {
-                                                                                            return parsed.slots.map((s: any, idx: number) => (
-                                                                                                <Text key={idx} style={{ fontSize: 11 }}>{s.day?.replace('T', 'Thứ ')} - Tiết {Array.isArray(s.periods) ? s.periods.join(', ') : s.period}</Text>
-                                                                                            ));
-                                                                                        } else if (parsed.thu && parsed.tiet_bd && parsed.tiet_kt) {
-                                                                                            return (
-                                                                                                <Text style={{ fontSize: 11 }}>Thứ {parsed.thu} - Tiết {parsed.tiet_bd}-{parsed.tiet_kt} {parsed.phong_hoc ? `(${parsed.phong_hoc})` : ''}</Text>
-                                                                                            );
-                                                                                        }
-                                                                                        return <Text style={{ fontSize: 11 }}>{cls.detail}</Text>;
-                                                                                    })()}
-                                                                                </View>
-                                                                                <View style={[styles.cell, styles.subCellSlots]}>
-                                                                                    <Text style={[styles.suggestionStatus, isBlocked ? styles.statusBlocked : styles.statusAvailable, { paddingVertical: 2, paddingHorizontal: 6, fontSize: 10, alignSelf: 'center', marginTop: 0 }]}>
-                                                                                        {cls.occupiedSlots}/{cls.totalSlots}
-                                                                                    </Text>
-                                                                                </View>
-                                                                                {activePhase?.type === 'class' && (
-                                                                                    <View style={[styles.cell, styles.subCellAction]}>
-                                                                                        <TouchableOpacity
-                                                                                            style={[styles.registerButton, { height: 26, paddingHorizontal: 8, borderRadius: 4 }, (isSubmitting || isBlocked) && styles.registerButtonDisabled]}
-                                                                                            onPress={() => handleRegisterClassSection(cls.id, item.code)}
-                                                                                            disabled={isSubmitting || isBlocked}
-                                                                                        >
-                                                                                            <Text style={[styles.registerButtonText, { fontSize: 11 }]}>Đăng ký</Text>
-                                                                                        </TouchableOpacity>
-                                                                                    </View>
-                                                                                )}
-                                                                            </View>
-                                                                        );
-                                                                    })
-                                                                ) : (
-                                                                    <View style={styles.tableRow}>
-                                                                        <Text style={[styles.cell, { flex: 1, textAlign: 'center' }]}>Không có lớp học phần nào đang mở cho học phần này</Text>
+                                                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                                                <View style={styles.subTable}>
+                                                                    <View style={styles.tableHeader}>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 80 }]}>Mã Lớp</Text>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 80 }]}>Lớp kèm</Text>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 40 }]}>Thứ</Text>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 60 }]}>Buổi</Text>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 50 }]}>Tiết bd</Text>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 50 }]}>Tiết kt</Text>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 80 }]}>Phòng</Text>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 60 }]}>Cần TN</Text>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 60 }]}>Số chỗ</Text>
+                                                                        <Text style={[styles.headerCell, styles.subCellCol, { width: 100 }]}>Ghi chú</Text>
+                                                                        {activePhase?.type === 'class' && <Text style={[styles.headerCell, styles.subCellCol, { width: 80 }]}>Hành động</Text>}
                                                                     </View>
-                                                                )}
-                                                            </View>
+                                                                    {courseClassesData[item.courseId]?.length > 0 ? (
+                                                                        courseClassesData[item.courseId].map(cls => {
+                                                                            let parsed: any = {};
+                                                                            try { parsed = JSON.parse(cls.detail || '{}'); } catch { }
+                                                                            const isBlocked = cls.occupiedSlots >= cls.totalSlots;
+                                                                            const isRegistered = registeredClasses.some(rc => rc.classId === cls.id);
+                                                                            const isAnyClassRegisteredForCourse = registeredClasses.some(rc => rc.code === item.code);
+
+                                                                            return (
+                                                                                <View key={cls.id} style={styles.tableRow}>
+                                                                                    <Text style={[styles.cell, styles.subCellCol, { width: 80 }]}>{parsed.ma_lop || cls.id}</Text>
+                                                                                    <Text style={[styles.cell, styles.subCellCol, { width: 80 }]}>{parsed.ma_lop_kem || ''}</Text>
+                                                                                    <Text style={[styles.cell, styles.subCellCol, { width: 40 }]}>{parsed.thu || ''}</Text>
+                                                                                    <Text style={[styles.cell, styles.subCellCol, { width: 60 }]}>{parsed.buoi || ''}</Text>
+                                                                                    <Text style={[styles.cell, styles.subCellCol, { width: 50 }]}>{parsed.tiet_bd || ''}</Text>
+                                                                                    <Text style={[styles.cell, styles.subCellCol, { width: 50 }]}>{parsed.tiet_kt || ''}</Text>
+                                                                                    <Text style={[styles.cell, styles.subCellCol, { width: 80 }]}>{parsed.phong_hoc || ''}</Text>
+                                                                                    <Text style={[styles.cell, styles.subCellCol, { width: 60 }]}>{parsed.can_tn || ''}</Text>
+                                                                                    <View style={[styles.cell, styles.subCellCol, { width: 60 }]}>
+                                                                                        <Text style={[styles.suggestionStatus, isBlocked ? styles.statusBlocked : styles.statusAvailable, { paddingVertical: 2, paddingHorizontal: 6, fontSize: 10, alignSelf: 'center', marginTop: 0 }]}>
+                                                                                            {cls.occupiedSlots}/{cls.totalSlots}
+                                                                                        </Text>
+                                                                                    </View>
+                                                                                    <Text style={[styles.cell, styles.subCellCol, { width: 100 }]}>{parsed.ghi_chu || ''}</Text>
+                                                                                    {activePhase?.type === 'class' && (
+                                                                                        <View style={[styles.cell, styles.subCellCol, { width: 80 }]}>
+                                                                                            {isRegistered ? (
+                                                                                                <TouchableOpacity
+                                                                                                    style={[styles.outlineActionButton, { height: 26, paddingHorizontal: 8, paddingVertical: 0, justifyContent: 'center' }]}
+                                                                                                    onPress={() => handleCancelClassSection(cls.id, item.code)}
+                                                                                                    disabled={isSubmitting}
+                                                                                                >
+                                                                                                    <Text style={[styles.outlineActionButtonText, { fontSize: 11 }]}>Huỷ lớp</Text>
+                                                                                                </TouchableOpacity>
+                                                                                            ) : isAnyClassRegisteredForCourse ? null : (
+                                                                                                <TouchableOpacity
+                                                                                                    style={[styles.registerButton, { height: 26, paddingHorizontal: 8, borderRadius: 4 }, (isSubmitting || isBlocked) && styles.registerButtonDisabled]}
+                                                                                                    onPress={() => handleRegisterClassSection(cls.id, item.code)}
+                                                                                                    disabled={isSubmitting || isBlocked}
+                                                                                                >
+                                                                                                    <Text style={[styles.registerButtonText, { fontSize: 11, color: isBlocked ? colors.textSecondary : colors.surface }]}>
+                                                                                                        {isBlocked ? 'Hết chỗ' : 'Đăng ký'}
+                                                                                                    </Text>
+                                                                                                </TouchableOpacity>
+                                                                                            )}
+                                                                                        </View>
+                                                                                    )}
+                                                                                </View>
+                                                                            );
+                                                                        })
+                                                                    ) : (
+                                                                        <View style={styles.tableRow}>
+                                                                            <Text style={[styles.cell, { flex: 1, textAlign: 'center' }]}>Không có lớp học phần nào đang mở cho học phần này</Text>
+                                                                        </View>
+                                                                    )}
+                                                                </View>
+                                                            </ScrollView>
                                                         )}
                                                     </View>
                                                 )}
@@ -369,7 +387,8 @@ export const StudentDashboardScreen = ({
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                         <View style={styles.timeGrid}>
                                             <View style={styles.gridRow}>
-                                                <View style={styles.gridHeaderCorner} />
+                                                <View style={styles.gridHeaderCornerSession} />
+                                                <View style={styles.gridHeaderCornerPeriod} />
                                                 {daysOfWeek.map(day => (
                                                     <View key={day} style={styles.gridHeaderCell}>
                                                         <Text style={styles.gridHeaderText}>{day}</Text>
@@ -377,71 +396,88 @@ export const StudentDashboardScreen = ({
                                                 ))}
                                             </View>
 
-                                            {morningPeriods.map(period => (
-                                                <View key={`m-${period}`} style={styles.gridRow}>
-                                                    <View style={styles.gridPeriodCell}>
-                                                        <Text style={styles.gridPeriodText}>Tiết {period}</Text>
-                                                    </View>
-                                                    {daysOfWeek.map(day => {
-                                                        const event = timeGridEvents.find(
-                                                            (gridEvent: TimeEvent) =>
-                                                                gridEvent.day === day &&
-                                                                gridEvent.period === period
-                                                        );
-
-                                                        return (
-                                                            <View
-                                                                key={`${day}-${period}`}
-                                                                style={[
-                                                                    styles.gridCell,
-                                                                    event && styles.gridCellActive,
-                                                                ]}
-                                                            >
-                                                                {event && (
-                                                                    <Text style={styles.gridEventText}>
-                                                                        {event.name}
-                                                                    </Text>
-                                                                )}
-                                                            </View>
-                                                        );
-                                                    })}
+                                            <View style={styles.gridRow}>
+                                                <View style={styles.gridSessionCell}>
+                                                    <Text style={[styles.gridSessionText, { transform: [{ rotate: '-90deg' }] }]}>Sáng</Text>
                                                 </View>
-                                            ))}
+                                                <View style={{ flex: 1 }}>
+                                                    {morningPeriods.map(period => (
+                                                        <View key={`m-${period}`} style={styles.gridRow}>
+                                                            <View style={styles.gridPeriodCell}>
+                                                                <Text style={styles.gridPeriodText}>Tiết {period}</Text>
+                                                            </View>
+                                                            {daysOfWeek.map(day => {
+                                                                const event = timeGridEvents.find(
+                                                                    (gridEvent: TimeEvent) =>
+                                                                        gridEvent.day === day &&
+                                                                        gridEvent.period === period
+                                                                );
+
+                                                                return (
+                                                                    <View
+                                                                        key={`${day}-${period}`}
+                                                                        style={[
+                                                                            styles.gridCell,
+                                                                            event && styles.gridCellActive,
+                                                                        ]}
+                                                                    >
+                                                                        {event && (
+                                                                            <Text style={styles.gridEventText}>
+                                                                                {event.name}
+                                                                            </Text>
+                                                                        )}
+                                                                    </View>
+                                                                );
+                                                            })}
+                                                        </View>
+                                                    ))}
+                                                </View>
+                                            </View>
 
                                             <View style={styles.gridDivider}>
                                                 <Text style={styles.gridDividerText}>Nghỉ trưa</Text>
                                             </View>
 
-                                            {afternoonPeriods.map(period => (
-                                                <View key={`a-${period}`} style={styles.gridRow}>
-                                                    <View style={styles.gridPeriodCell}>
-                                                        <Text style={styles.gridPeriodText}>Tiết {period}</Text>
-                                                    </View>
-                                                    {daysOfWeek.map(day => {
-                                                        const event = timeGridEvents.find(
-                                                            (gridEvent: TimeEvent) =>
-                                                                gridEvent.day === day &&
-                                                                gridEvent.period === period
-                                                        );
-
+                                            <View style={styles.gridRow}>
+                                                <View style={styles.gridSessionCell}>
+                                                    <Text style={[styles.gridSessionText, { transform: [{ rotate: '-90deg' }] }]}>Chiều</Text>
+                                                </View>
+                                                <View style={{ flex: 1 }}>
+                                                    {afternoonPeriods.map(period => {
+                                                        const displayPeriod = period - 6;
                                                         return (
-                                                            <View
-                                                                key={`${day}-${period}`}
-                                                                style={[
-                                                                    styles.gridCell,
-                                                                    event && styles.gridCellActive,
-                                                                ]}
-                                                            >
-                                                                {event && (
-                                                                    <Text style={styles.gridEventText}>
-                                                                        {event.name}
-                                                                    </Text>
-                                                                )}
+                                                            <View key={`a-${period}`} style={styles.gridRow}>
+                                                                <View style={styles.gridPeriodCell}>
+                                                                    <Text style={styles.gridPeriodText}>Tiết {displayPeriod}</Text>
+                                                                </View>
+                                                                {daysOfWeek.map(day => {
+                                                                    const event = timeGridEvents.find(
+                                                                        (gridEvent: TimeEvent) =>
+                                                                            gridEvent.day === day &&
+                                                                            gridEvent.period === period
+                                                                    );
+
+                                                                    return (
+                                                                        <View
+                                                                            key={`${day}-${period}`}
+                                                                            style={[
+                                                                                styles.gridCell,
+                                                                                event && styles.gridCellActive,
+                                                                            ]}
+                                                                        >
+                                                                            {event && (
+                                                                                <Text style={styles.gridEventText}>
+                                                                                    {event.name}
+                                                                                </Text>
+                                                                            )}
+                                                                        </View>
+                                                                    );
+                                                                })}
                                                             </View>
                                                         );
                                                     })}
                                                 </View>
-                                            ))}
+                                            </View>
                                         </View>
                                     </ScrollView>
                                 </View>

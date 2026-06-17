@@ -17,4 +17,5 @@ export interface IStudentRegistrationRepository {
   getTimetable(studentId: number): Promise<TimetableEntry[]>;
   deleteRegisteredCourse(studentId: number, courseId: number, semester: string): Promise<void>;
   getCourseClasses(studentId: number, courseId: number): Promise<ClassSuggestion[]>;
+  cancelClassRegistration(studentId: number, classId: number): Promise<void>;
 }

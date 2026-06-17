@@ -49,6 +49,29 @@ function parseTimetableEvents(entries: TimetableEntry[]): TimeEvent[] {
 
         try {
             const detail = JSON.parse(entry.detail);
+
+            if (detail.thu && detail.tiet_bd && detail.tiet_kt) {
+                const dayStr = `T${detail.thu}`;
+                let start = parseInt(detail.tiet_bd, 10);
+                let end = parseInt(detail.tiet_kt, 10);
+                if (isNaN(start) || isNaN(end)) return [];
+
+                if (detail.buoi === 'Chiều') {
+                    start += 6;
+                    end += 6;
+                }
+
+                const events: TimeEvent[] = [];
+                for (let i = start; i <= end; i++) {
+                    events.push({
+                        day: dayStr,
+                        period: i,
+                        name: entry.code,
+                    });
+                }
+                return events;
+            }
+
             const slots = Array.isArray(detail) ? detail : detail.slots;
             if (!Array.isArray(slots)) return [];
 
@@ -83,6 +106,7 @@ export const useStudentDashboardViewModel = (
     const [isSuggestionVisible, setIsSuggestionVisible] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [registeredClasses, setRegisteredClasses] = useState<TimetableEntry[]>([]);
     const [timeGridEvents, setTimeGridEvents] = useState<TimeEvent[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [popupConfig, setPopupConfig] = useState<{ visible: boolean; message: string; buttonText: string } | null>(null);
@@ -138,6 +162,7 @@ export const useStudentDashboardViewModel = (
                 status: toStatusLabel(course.status),
             }))
         );
+        setRegisteredClasses(timetable);
         setTimeGridEvents(parseTimetableEvents(timetable));
     };
 
@@ -343,6 +368,32 @@ export const useStudentDashboardViewModel = (
         }
     };
 
+    const handleCancelClassSection = async (classId: number, courseCode: string) => {
+        Alert.alert(
+            'Xác nhận huỷ lớp',
+            `Bạn có chắc chắn muốn huỷ đăng ký lớp học phần ${courseCode}?`,
+            [
+                { text: 'Huỷ', style: 'cancel' },
+                {
+                    text: 'Xác nhận',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setIsSubmitting(true);
+                            await registrationUseCase.cancelClassRegistration(studentId, classId);
+                            Alert.alert('Thành công', `Đã huỷ đăng ký lớp học phần ${courseCode}.`);
+                            await reloadStudentData();
+                        } catch (error: any) {
+                            Alert.alert('Cảnh báo', error.message || 'Huỷ thất bại.');
+                        } finally {
+                            setIsSubmitting(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     return {
         isUserInfoVisible,
         toggleUserInfo,
@@ -375,5 +426,7 @@ export const useStudentDashboardViewModel = (
         isLoadingClasses,
         toggleCourseExpansion,
         handleRegisterClassSection,
+        registeredClasses,
+        handleCancelClassSection,
     };
 };

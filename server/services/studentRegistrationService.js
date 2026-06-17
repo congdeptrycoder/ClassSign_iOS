@@ -534,6 +534,33 @@ function getTimetable(db, studentId) {
     `).all(studentId);
 }
 
+function cancelClassRegistration(db, studentId, classId) {
+    const existing = db.prepare(`
+        SELECT id FROM student_class_registrations
+        WHERE student_id = ? AND class_id = ?
+        LIMIT 1
+    `).get(studentId, classId);
+
+    if (!existing) {
+        throw new Error('Không tìm thấy đăng ký lớp học này.');
+    }
+
+    db.transaction(() => {
+        db.prepare(`
+            DELETE FROM student_class_registrations
+            WHERE id = ?
+        `).run(existing.id);
+
+        db.prepare(`
+            UPDATE classes_course
+            SET occupied_slots = occupied_slots - 1
+            WHERE id = ?
+        `).run(classId);
+    })();
+
+    return { success: true };
+}
+
 module.exports = {
     getCurriculum,
     getRegisteredCourseRows,
@@ -544,4 +571,5 @@ module.exports = {
     searchCourseSuggestions,
     getTimetable,
     getClassesForCourse,
+    cancelClassRegistration,
 };

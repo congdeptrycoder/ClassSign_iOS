@@ -255,6 +255,7 @@ export const createStudentStyles = (colors: ThemeColors) =>
         subCellDetail: { width: 150 },
         subCellSlots: { width: 70, alignItems: 'center' },
         subCellAction: { width: 80, alignItems: 'center' },
+        subCellCol: { paddingHorizontal: 4, justifyContent: 'center', alignItems: 'center' },
         tableStatusCell: {
             padding: 8,
             justifyContent: 'center',
@@ -276,8 +277,16 @@ export const createStudentStyles = (colors: ThemeColors) =>
             borderColor: colors.tableBorder,
         },
         gridRow: { flexDirection: 'row' },
-        gridHeaderCorner: {
-            width: 60,
+        gridHeaderCornerSession: {
+            width: 40,
+            height: 40,
+            backgroundColor: colors.tableHeader,
+            borderRightWidth: 1,
+            borderBottomWidth: 1,
+            borderColor: colors.tableBorder,
+        },
+        gridHeaderCornerPeriod: {
+            width: 50,
             height: 40,
             backgroundColor: colors.tableHeader,
             borderRightWidth: 1,
@@ -299,8 +308,22 @@ export const createStudentStyles = (colors: ThemeColors) =>
             fontSize: 12,
             color: colors.tableHeaderText,
         },
+        gridSessionCell: {
+            width: 40,
+            backgroundColor: colors.surface,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRightWidth: 1,
+            borderBottomWidth: 1,
+            borderColor: colors.tableBorder,
+        },
+        gridSessionText: {
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: colors.textSecondary,
+        },
         gridPeriodCell: {
-            width: 60,
+            width: 50,
             height: 50,
             backgroundColor: colors.surface,
             justifyContent: 'center',

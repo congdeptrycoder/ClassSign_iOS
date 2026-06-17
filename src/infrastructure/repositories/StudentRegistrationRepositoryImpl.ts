@@ -64,4 +64,8 @@ export class StudentRegistrationRepositoryImpl
   getCourseClasses(studentId: number, courseId: number): Promise<ClassSuggestion[]> {
     return apiClient.get<ClassSuggestion[]>(`/students/${studentId}/courses/${courseId}/classes`);
   }
+
+  async cancelClassRegistration(studentId: number, classId: number): Promise<void> {
+    await apiClient.delete<{ success: boolean }>(`/students/${studentId}/class-registrations?classId=${classId}`);
+  }
 }
