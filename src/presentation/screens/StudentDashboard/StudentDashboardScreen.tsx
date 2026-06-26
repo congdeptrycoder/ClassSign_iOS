@@ -235,6 +235,22 @@ export const StudentDashboardScreen = ({
                                                                     {item.statusLabel}
                                                                 </Text>
                                                             )}
+                                                            {'prerequisiteCode' in item && !item.canRegister && item.prerequisiteCode && (
+                                                                <Text style={[styles.suggestionStatus, { backgroundColor: colors.surface, color: colors.statusDanger }]}>
+                                                                    Cần học {item.prerequisiteCode}-{item.prerequisiteName} trước
+                                                                </Text>
+                                                            )}
+                                                            {'parallelCode' in item && item.parallelCode && (
+                                                                (item.parallelCourseRawStatus === 'completed' || item.parallelCourseRawStatus === 're_registered') ? (
+                                                                    <Text style={[styles.suggestionStatus, styles.statusCompleted]}>
+                                                                        Đã hoàn thành học phần song hành {item.parallelCode}-{item.parallelName}
+                                                                    </Text>
+                                                                ) : (
+                                                                    <Text style={[styles.suggestionStatus, { backgroundColor: colors.surface, color: colors.statusWarning }]}>
+                                                                        Học phần song hành {item.parallelCode}-{item.parallelName}
+                                                                    </Text>
+                                                                )
+                                                            )}
                                                         </TouchableOpacity>
                                                     ))}
                                                 </ScrollView>
@@ -251,8 +267,7 @@ export const StudentDashboardScreen = ({
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                     <View style={styles.table}>
                                         <View style={styles.tableHeader}>
-                                            <Text style={[styles.headerCell, styles.cellExpand]}>DS lớp</Text>
-                                            <Text style={[styles.headerCell, styles.cellId]}>ID</Text>
+                                            {activePhase?.type === 'class' && <Text style={[styles.headerCell, styles.cellExpand]}>DS lớp</Text>}
                                             <Text style={[styles.headerCell, styles.cellCode]}>Mã HP</Text>
                                             <Text style={[styles.headerCell, styles.cellName]}>Tên học phần</Text>
                                             <Text style={[styles.headerCell, styles.cellStatus]}>TT đăng ký</Text>
@@ -262,10 +277,11 @@ export const StudentDashboardScreen = ({
                                         {registeredSubjects.map((item: RegisteredSubject) => (
                                             <View key={item.id}>
                                                 <View style={[styles.tableRow, expandedCourseIds.has(item.courseId) && styles.expandedRow]}>
-                                                    <TouchableOpacity style={[styles.cell, styles.cellExpand]} onPress={() => toggleCourseExpansion(item.courseId)}>
-                                                        <Text style={{ fontSize: 12 }}>{expandedCourseIds.has(item.courseId) ? '▼' : '▶'}</Text>
-                                                    </TouchableOpacity>
-                                                    <Text style={[styles.cell, styles.cellId]}>{item.id}</Text>
+                                                    {activePhase?.type === 'class' && (
+                                                        <TouchableOpacity style={[styles.cell, styles.cellExpand]} onPress={() => toggleCourseExpansion(item.courseId)}>
+                                                            <Text style={{ fontSize: 12 }}>{expandedCourseIds.has(item.courseId) ? '▼' : '▶'}</Text>
+                                                        </TouchableOpacity>
+                                                    )}
                                                     <Text style={[styles.cell, styles.cellCode, styles.courseCodeText]}>{item.code}</Text>
                                                     <Text style={[styles.cell, styles.cellName]}>{item.name}</Text>
                                                     <View style={[styles.cellStatus, styles.tableStatusCell]}>
@@ -369,10 +385,10 @@ export const StudentDashboardScreen = ({
                                     </View>
                                 </ScrollView>
                                 <View style={{ marginTop: 16, paddingHorizontal: 4 }}>
-                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 4 }}>
+                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 4 }}>
                                         Tổng số TC: {totalCredits}
                                     </Text>
-                                    <Text style={{ fontSize: 14, color: colors.error, fontStyle: 'italic' }}>
+                                    <Text style={{ fontSize: 14, color: colors.statusDanger, fontStyle: 'italic' }}>
                                         {studentStatus === 'study' ? '* Bạn được đăng ký tối đa 24 TC' :
                                             studentStatus === 'study_cc1' ? '* Bạn đang bị cảnh cáo mức 1. Chỉ được đăng ký tối đa 20 TC' :
                                                 studentStatus === 'study_cc2' ? '* Bạn đang bị cảnh cáo mức 2. Chỉ được đăng ký tối đa 16 TC' :

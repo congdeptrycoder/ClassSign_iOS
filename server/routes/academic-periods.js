@@ -10,17 +10,24 @@ const router = express.Router();
 function updateExpiredPeriods(db) {
     try {
         const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
-        const info = db.prepare(`
+
+        const expireInfo = db.prepare(`
             UPDATE academic_periods
             SET is_active = 0, updated_at = CURRENT_TIMESTAMP
             WHERE is_active = 1 AND end_date <= ?
         `).run(now);
 
-        if (info.changes > 0) {
-            logger.info(`Đã cập nhật ${info.changes} giai đoạn hết hạn.`);
+        const activateInfo = db.prepare(`
+            UPDATE academic_periods
+            SET is_active = 1, updated_at = CURRENT_TIMESTAMP
+            WHERE is_active = 0 AND start_date <= ? AND end_date > ?
+        `).run(now, now);
+
+        if (expireInfo.changes > 0 || activateInfo.changes > 0) {
+            logger.info(`Đã cập nhật ${expireInfo.changes} giai đoạn hết hạn, ${activateInfo.changes} giai đoạn bắt đầu.`);
         }
     } catch (err) {
-        logger.error('Lỗi khi cập nhật giai đoạn hết hạn', {
+        logger.error('Lỗi khi cập nhật trạng thái giai đoạn', {
             error: err.message,
         });
     }
@@ -75,12 +82,28 @@ router.post('/', (req, res) => {
         const db = getDb();
         const periodType = type === 'class' ? 'register_class' : 'register_program';
 
+        // Check for overlaps
+        const overlap = db.prepare(`
+            SELECT id FROM academic_periods
+            WHERE period_type = ? 
+              AND (? <= end_date) 
+              AND (? >= start_date)
+        `).get(periodType, startTime, endTime);
+
+        if (overlap) {
+            return sendError(res, 400, 'alarm_one_choose');
+        }
+
+        const now = new Date();
+        const start = new Date(startTime.replace(' ', 'T'));
+        const end = new Date(endTime.replace(' ', 'T'));
+        const isActive = (now >= start && now <= end) ? 1 : 0;
+
         const createPeriod = db.transaction(() => {
-            db.prepare('UPDATE academic_periods SET is_active = 0 WHERE is_active = 1').run();
             const result = db.prepare(`
                 INSERT INTO academic_periods (semester, period_type, start_date, end_date, is_active)
-                VALUES (?, ?, ?, ?, 1)
-            `).run(semesterId, periodType, startTime, endTime);
+                VALUES (?, ?, ?, ?, ?)
+            `).run(semesterId, periodType, startTime, endTime, isActive);
 
             return result.lastInsertRowid;
         });
@@ -110,15 +133,34 @@ router.put('/:id', (req, res) => {
         const periodType = type === 'class' ? 'register_class' : 'register_program';
         const db = getDb();
 
+        // Check for overlaps
+        const overlap = db.prepare(`
+            SELECT id FROM academic_periods
+            WHERE id != ? 
+              AND period_type = ?
+              AND (? <= end_date) 
+              AND (? >= start_date)
+        `).get(id, periodType, startTime, endTime);
+
+        if (overlap) {
+            return sendError(res, 400, 'alarm_one_choose');
+        }
+
+        const now = new Date();
+        const start = new Date(startTime.replace(' ', 'T'));
+        const end = new Date(endTime.replace(' ', 'T'));
+        const isActive = (now >= start && now <= end) ? 1 : 0;
+
         db.prepare(`
             UPDATE academic_periods
             SET semester = ?,
                 period_type = ?,
                 start_date = ?,
                 end_date = ?,
+                is_active = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).run(semesterId, periodType, startTime, endTime, id);
+        `).run(semesterId, periodType, startTime, endTime, isActive, id);
 
         updateExpiredPeriods(db);
 
@@ -143,4 +185,7 @@ router.delete('/:id', (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = {
+    router,
+    updateExpiredPeriods
+};

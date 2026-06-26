@@ -22,7 +22,7 @@ export const createStyles = (colors: any) =>
             flex: 1,
         },
         backBtn: {
-            backgroundColor: '#d9534f',
+            backgroundColor: colors.btnDelete,
             paddingHorizontal: 12,
             paddingVertical: 6,
             borderRadius: 4,
@@ -107,14 +107,14 @@ export const createStyles = (colors: any) =>
             alignItems: 'center',
         },
         actionBtnMopLop: {
-            backgroundColor: '#5cb85c',
+            backgroundColor: colors.statusSuccess,
             paddingHorizontal: 8,
             paddingVertical: 6,
             borderRadius: 4,
             marginRight: 4,
         },
         actionBtnXemDS: {
-            backgroundColor: '#337ab7',
+            backgroundColor: colors.btnDetail,
             paddingHorizontal: 8,
             paddingVertical: 6,
             borderRadius: 4,
@@ -157,8 +157,8 @@ export const createStyles = (colors: any) =>
             borderRadius: 4,
             marginHorizontal: 2,
         },
-        editBtn: { backgroundColor: '#f0ad4e' },
-        deleteBtn: { backgroundColor: '#d9534f' },
+        editBtn: { backgroundColor: colors.btnEdit },
+        deleteBtn: { backgroundColor: colors.btnDelete },
         // ── States ─────────────────────────────────────────────────────
         centeredBox: {
             flex: 1,
@@ -167,7 +167,7 @@ export const createStyles = (colors: any) =>
             padding: 20,
         },
         errorText: {
-            color: '#d9534f',
+            color: colors.statusDanger,
             fontSize: 14,
             textAlign: 'center',
         },

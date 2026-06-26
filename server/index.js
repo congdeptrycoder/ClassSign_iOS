@@ -28,14 +28,21 @@ app.options(/.*/, (_req, res) => res.sendStatus(204));
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/semesters', require('./routes/semesters'));
-app.use('/api/academic-periods', require('./routes/academic-periods'));
+const academicPeriodsModule = require('./routes/academic-periods');
+app.use('/api/academic-periods', academicPeriodsModule.router);
 app.use('/api/students', require('./routes/student-registration'));
 app.use('/api/admin', require('./routes/admin'));
 
 // ── Khởi động ─────────────────────────────────────────────────────────────────
 try {
     // Kết nối DB ngay khi server khởi động để phát hiện lỗi sớm
-    getDb();
+    const db = getDb();
+
+    // Cronjob cập nhật trạng thái đợt đăng ký (mỗi 24 giờ)
+    setInterval(() => {
+        logger.info('Chạy cronjob cập nhật trạng thái đợt đăng ký...');
+        academicPeriodsModule.updateExpiredPeriods(db);
+    }, 24 * 60 * 60 * 1000);
 
     app.listen(PORT, '0.0.0.0', () => {
         logger.info(`Server đang chạy tại http://0.0.0.0:${PORT}`);

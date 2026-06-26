@@ -59,6 +59,16 @@ export interface ThemeColors {
     themeToggleBackground: string;
     // Màu chữ nút toggle theme
     themeToggleText: string;
+    // Semantic colors
+    statusSuccess: string;
+    statusDanger: string;
+    statusWarning: string;
+    statusInfo: string;
+    btnDetail: string;
+    btnEdit: string;
+    btnDelete: string;
+    btnCancel: string;
+    warningText: string;
 }
 
 export interface ThemeContextValue {

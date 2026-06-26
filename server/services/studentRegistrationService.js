@@ -122,9 +122,10 @@ function getCurriculumRows(db, studentId) {
                 course_id,
                 CASE
                     WHEN SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) > 0 THEN 'completed'
-                    WHEN SUM(CASE WHEN COALESCE(status, 'registered') = 'registered' THEN 1 ELSE 0 END) > 0 THEN 'registered'
+                    WHEN SUM(CASE WHEN COALESCE(status, 'registered') IN ('registered', 're_registered') THEN 1 ELSE 0 END) > 0 THEN 'registered'
                     ELSE NULL
-                END as registrationStatus
+                END as registrationStatus,
+                (SELECT COALESCE(status, 'registered') FROM student_courses sc2 WHERE sc2.course_id = student_courses.course_id AND sc2.student_id = student_courses.student_id ORDER BY id DESC LIMIT 1) as latestStatus
             FROM student_courses
             WHERE student_id = ?
             GROUP BY course_id
@@ -141,7 +142,8 @@ function getCurriculumRows(db, studentId) {
             pre.course_name as prerequisiteName,
             par.course_code as parallelCode,
             par.course_name as parallelName,
-            sc.registrationStatus
+            sc.registrationStatus,
+        sc.latestStatus
         FROM program_course pc
         JOIN courses c ON c.id = pc.course_id
         LEFT JOIN courses pre ON pre.id = pc.prerequisite_course_id
@@ -153,31 +155,45 @@ function getCurriculumRows(db, studentId) {
 
     const completedCourseIds = getCompletedCourseIds(db, studentId);
 
-    return rows.map(row => {
-        const hasMissingPrerequisite =
-            row.prerequisiteCourseId && !completedCourseIds.has(row.prerequisiteCourseId);
-        const status = row.registrationStatus === 'completed'
-            ? 'completed'
-            : row.registrationStatus
-                ? 'registered'
-                : hasMissingPrerequisite
-                    ? 'blocked'
-                    : 'available';
-        const hasStudied = status === 'completed';
+    const courses = rows.map(row => {
+    const hasMissingPrerequisite =
+      row.prerequisiteCourseId && !completedCourseIds.has(row.prerequisiteCourseId);
+    const status = row.registrationStatus === 'completed'
+      ? 'completed'
+      : row.registrationStatus
+        ? 'registered'
+        : hasMissingPrerequisite
+          ? 'blocked'
+          : 'available';
+    const hasStudied = status === 'completed';
 
-        return {
-            ...row,
-            status,
-            statusLabel: getCourseStatusLabel(status),
-            hasStudied,
-            studyStatusLabel: hasStudied ? 'Đã học' : 'Chưa học',
-            canRegister: status === 'available',
-            blockingReason: hasMissingPrerequisite
-                ? `Thiếu học phần tiên quyết ${row.prerequisiteCode}`
-                : null,
-        };
-    });
+    return {
+      ...row,
+      latestStatus: row.latestStatus,
+      status,
+      statusLabel: getCourseStatusLabel(status),
+      hasStudied,
+      studyStatusLabel: hasStudied ? 'Đã học' : 'Chưa học',
+      canRegister: status === 'available',
+      blockingReason: hasMissingPrerequisite
+        ? `Thiếu học phần tiên quyết ${row.prerequisiteCode}-${row.prerequisiteName} chưa hoàn thành`
+        : null,
+    };
+  });
+
+  const courseMap = new Map(courses.map(c => [c.courseId, c]));
+  courses.forEach(c => {
+    if (c.parallelCourseId) {
+      const parCourse = courseMap.get(c.parallelCourseId);
+      c.parallelCourseRawStatus = parCourse ? parCourse.latestStatus : null;
+    } else {
+      c.parallelCourseRawStatus = null;
+    }
+  });
+
+  return courses;
 }
+
 
 function getCourseStatusLabel(status) {
     switch (status) {
@@ -239,83 +255,81 @@ function registerCourse(db, studentId, input) {
         throw new Error('Học phần không tồn tại.');
     }
 
-    const curriculumCourse = getCurriculumRows(db, studentId)
-        .find(item => item.courseId === course.id);
+    const curriculumCourses = getCurriculumRows(db, studentId);
+    const courseMap = new Map(curriculumCourses.map(c => [c.courseId, c]));
 
-    if (!curriculumCourse) {
-        throw new Error('Học phần không thuộc chương trình đào tạo của sinh viên.');
-    }
+    const collectedToRegister = new Map();
+    const autoAddedNames = [];
 
-    if (curriculumCourse.blockingReason) {
-        throw new Error(curriculumCourse.blockingReason);
-    }
+    function collectSync(targetCourseId, isAutoAdd, depth = 0) {
+        if (depth > 10) throw new Error('Phát hiện vòng lặp đệ quy học phần song hành.');
+        if (collectedToRegister.has(targetCourseId)) return;
 
-    const existingInCurrentSemester = db.prepare(`
-        SELECT id
-        FROM student_courses
-        WHERE student_id = ?
-            AND course_id = ?
-            AND semester = ?
-        LIMIT 1
-    `).get(studentId, course.id, activePeriod.semester);
-
-    if (existingInCurrentSemester) {
-        throw new Error('Học phần này đã được đăng ký trong học kỳ hiện tại.');
-    }
-
-    const existing = db.prepare(`
-        SELECT id, status, semester
-        FROM student_courses
-        WHERE student_id = ?
-            AND course_id = ?
-        ORDER BY id DESC
-        LIMIT 1
-    `).get(studentId, course.id);
-
-    let message = 'Đăng ký thành công';
-    let insertedId = null;
-
-    if (existing) {
-        if (existing.status === 'registered' && existing.semester === activePeriod.semester) {
-            return {
-                id: existing.id,
-                message: 'Bạn đã đăng ký thành công trước đó'
-            };
-        } else if (existing.status === 'registered' && existing.semester !== activePeriod.semester) {
-            message = 'Đăng ký thành công. Học phần này đã từng được đăng ký nhưng chưa học xong.';
-            const result = db.prepare(`
-                INSERT INTO student_courses (student_id, course_id, semester, status)
-                VALUES (?, ?, ?, 'registered')
-            `).run(studentId, course.id, activePeriod.semester);
-            insertedId = result.lastInsertRowid;
-        } else if (existing.status === 'completed') {
-            message = 'Đăng ký thành công. Học phần này đã từng được học, bạn đang đăng ký học lại.';
-            const result = db.prepare(`
-                INSERT INTO student_courses (student_id, course_id, semester, status)
-                VALUES (?, ?, ?, 're_registered')
-            `).run(studentId, course.id, activePeriod.semester);
-            insertedId = result.lastInsertRowid;
-        } else {
-            const result = db.prepare(`
-                INSERT INTO student_courses (student_id, course_id, semester, status)
-                VALUES (?, ?, ?, 'registered')
-            `).run(studentId, course.id, activePeriod.semester);
-            insertedId = result.lastInsertRowid;
+        const curriculumCourse = courseMap.get(targetCourseId);
+        if (!curriculumCourse) {
+            if (!isAutoAdd) throw new Error('Học phần không thuộc chương trình đào tạo của sinh viên.');
+            return;
         }
-    } else {
-        const result = db.prepare(`
-            INSERT INTO student_courses (student_id, course_id, semester, status)
-            VALUES (?, ?, ?, 'registered')
-        `).run(studentId, course.id, activePeriod.semester);
-        insertedId = result.lastInsertRowid;
+
+        if (curriculumCourse.blockingReason) {
+            throw new Error(`Học phần tiên quyết ${curriculumCourse.prerequisiteCode}-${curriculumCourse.prerequisiteName} chưa hoàn thành`);
+        }
+
+        const existingInSemester = db.prepare(`SELECT id FROM student_courses WHERE student_id = ? AND course_id = ? AND semester = ? LIMIT 1`).get(studentId, targetCourseId, activePeriod.semester);
+
+        if (existingInSemester) {
+            if (!isAutoAdd) throw new Error('Bạn đã đăng ký thành công trước đó');
+            return; 
+        }
+
+        collectedToRegister.set(targetCourseId, curriculumCourse);
+        if (isAutoAdd) {
+            autoAddedNames.push(`${curriculumCourse.code}-${curriculumCourse.name}`);
+        }
+
+        if (curriculumCourse.parallelCourseId) {
+            const parStatus = curriculumCourse.parallelCourseRawStatus;
+            if (parStatus !== 'completed' && parStatus !== 're_registered') {
+                collectSync(curriculumCourse.parallelCourseId, true, depth + 1);
+            }
+        }
     }
 
-    const newRow = getRegisteredCourseRows(db, studentId)
-        .find(item => item.id === Number(insertedId || existing.id));
+    collectSync(course.id, false);
+
+    let primaryRegisteredCourse = null;
+    let primaryMessage = 'Đăng ký thành công';
+
+    for (const [cId, cCourse] of collectedToRegister.entries()) {
+        const existingRegisteredOtherSemester = db.prepare(`SELECT id FROM student_courses WHERE student_id = ? AND course_id = ? AND status = 'registered' LIMIT 1`).get(studentId, cId);
+        const existingCompleted = db.prepare(`SELECT id FROM student_courses WHERE student_id = ? AND course_id = ? AND status = 'completed' LIMIT 1`).get(studentId, cId);
+
+        let newStatus = 'registered';
+        let msg = 'Đăng ký thành công';
+
+        if (existingCompleted) {
+            newStatus = 're_registered';
+            msg = 'Đăng ký thành công. Học phần này đã từng được học, bạn đang đăng ký học lại.';
+        } else if (existingRegisteredOtherSemester) {
+            newStatus = 'registered';
+            msg = 'Đăng ký thành công. Học phần này đã từng được đăng ký nhưng chưa học xong.';
+        }
+
+        const result = db.prepare(`INSERT INTO student_courses (student_id, course_id, semester, status) VALUES (?, ?, ?, ?)`).run(studentId, cId, activePeriod.semester, newStatus);
+
+        if (cId === course.id) {
+            primaryRegisteredCourse = getRegisteredCourseRows(db, studentId).find(item => item.id === result.lastInsertRowid);
+            primaryMessage = msg;
+        }
+    }
+
+    if (autoAddedNames.length > 0) {
+        primaryMessage = `Đã tự động thêm học phần song hành ${autoAddedNames.join(', ')}`;
+    }
 
     return {
-        ...newRow,
-        message
+        ...primaryRegisteredCourse,
+        message: primaryMessage
     };
 }
 
@@ -342,6 +356,10 @@ function searchClassSuggestions(db, studentId, query, limit = 10) {
     ensureStudentCourseStatusColumn(db);
     const normalized = query.trim().toLowerCase();
 
+    // Lọc theo kỳ đăng ký lớp học hiện hành
+    const activePeriod = getActiveRegistrationPeriod(db, 'register_class');
+    const semesterCondition = activePeriod ? `AND cc.semester = ${activePeriod.semester} AND sc.semester = ${activePeriod.semester}` : ``;
+
     return db.prepare(`
         SELECT DISTINCT
             cc.id,
@@ -357,8 +375,9 @@ function searchClassSuggestions(db, studentId, query, limit = 10) {
         JOIN student_courses sc
             ON sc.course_id = cc.course_id
             AND sc.student_id = ?
-            AND COALESCE(sc.status, 'registered') = 'registered'
-        WHERE ? = '' OR lower(c.course_code) LIKE ? OR lower(c.course_name) LIKE ?
+            AND COALESCE(sc.status, 'registered') IN ('registered', 're_registered')
+        WHERE (? = '' OR lower(c.course_code) LIKE ? OR lower(c.course_name) LIKE ?)
+        ${semesterCondition}
         ORDER BY c.course_code ASC
         LIMIT ?
     `).all(studentId, normalized, `%${normalized}%`, `%${normalized}%`, limit);
@@ -410,6 +429,10 @@ function hasOverlap(detailA, detailB) {
 function getClassesForCourse(db, studentId, courseId) {
     ensureStudentCourseStatusColumn(db);
 
+    // Lọc theo kỳ đăng ký lớp học hiện hành
+    const activePeriod = getActiveRegistrationPeriod(db, 'register_class');
+    const semesterCondition = activePeriod ? `AND cc.semester = ${activePeriod.semester} AND sc.semester = ${activePeriod.semester}` : ``;
+
     return db.prepare(`
         SELECT DISTINCT
             cc.id,
@@ -425,8 +448,9 @@ function getClassesForCourse(db, studentId, courseId) {
         JOIN student_courses sc
             ON sc.course_id = cc.course_id
             AND sc.student_id = ?
-            AND COALESCE(sc.status, 'registered') = 'registered'
+            AND COALESCE(sc.status, 'registered') IN ('registered', 're_registered')
         WHERE cc.course_id = ?
+        ${semesterCondition}
         ORDER BY cc.id ASC
     `).all(studentId, courseId);
 }
@@ -462,7 +486,7 @@ function registerClassSection(db, studentId, classId) {
         FROM student_courses
         WHERE student_id = ?
             AND course_id = ?
-            AND COALESCE(status, 'registered') = 'registered'
+            AND COALESCE(status, 'registered') IN ('registered', 're_registered')
         LIMIT 1
     `).get(studentId, classSection.courseId);
 
@@ -519,6 +543,18 @@ function registerClassSection(db, studentId, classId) {
 }
 
 function getTimetable(db, studentId) {
+    // Ưu tiên đợt đăng ký lớp học hoặc học phần hiện tại
+    const activePeriod = getActiveRegistrationPeriod(db, 'register_class') || getActiveRegistrationPeriod(db, 'register_program');
+    let semesterId = activePeriod?.semester;
+
+    if (!semesterId) {
+        // Fallback lấy đợt đăng ký gần nhất trong hệ thống
+        const lastPeriod = db.prepare('SELECT semester FROM academic_periods ORDER BY id DESC LIMIT 1').get();
+        semesterId = lastPeriod?.semester;
+    }
+
+    const semesterCondition = semesterId ? `AND cc.semester = ${semesterId}` : ``;
+
     return db.prepare(`
         SELECT
             scr.id,
@@ -530,6 +566,7 @@ function getTimetable(db, studentId) {
         JOIN classes_course cc ON cc.id = scr.class_id
         JOIN courses c ON c.id = cc.course_id
         WHERE scr.student_id = ?
+        ${semesterCondition}
         ORDER BY c.course_code ASC
     `).all(studentId);
 }

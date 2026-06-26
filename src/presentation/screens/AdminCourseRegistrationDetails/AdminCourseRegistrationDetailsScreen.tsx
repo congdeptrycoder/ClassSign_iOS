@@ -178,7 +178,7 @@ export const AdminCourseRegistrationDetailsScreen = ({
                                             <Text style={[styles.cell, styles.cellSoLuongToiDa]}>
                                                 {stat.so_luong_dk_toi_da}
                                             </Text>
-                                            <Text style={[styles.cell, styles.cellTrangThai, { color: trangThai === 'Đã đáp ứng đủ' ? '#5cb85c' : '#d9534f', fontWeight: 'bold' }]}>
+                                            <Text style={[styles.cell, styles.cellTrangThai, { color: trangThai === 'Đã đáp ứng đủ' ? colors.statusSuccess : colors.statusDanger, fontWeight: 'bold' }]}>
                                                 {trangThai}
                                             </Text>
                                             <View style={[styles.cellAction, { borderRightWidth: 0, borderBottomWidth: 0 }]}>

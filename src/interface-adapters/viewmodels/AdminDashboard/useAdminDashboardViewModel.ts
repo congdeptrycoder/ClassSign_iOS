@@ -7,6 +7,10 @@ import { logMessage } from '../../../shared/utils/logger';
 import { apiClient } from '../../../infrastructure/api/apiClient';
 import { FilterTableByColumn } from '../../../shared/utils/FilterTableByColumn';
 
+// Khởi tạo ngoài hook để tránh tạo lại mỗi lần render (tránh race condition)
+const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
+const managePhasesUseCase = new ManageRegistrationPhases(phaseRepository);
+
 export interface SemesterInfo {
     id: number;
     semester: number;
@@ -60,24 +64,24 @@ export const useAdminDashboardViewModel = (
     const [isClassSemesterModalOpen, setClassSemesterModalOpen] = useState(false);
     const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
 
-    const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
-    const managePhasesUseCase = new ManageRegistrationPhases(phaseRepository);
+    const [isCreateSemesterModalOpen, setCreateSemesterModalOpen] = useState(false);
+    const [newSemesterCode, setNewSemesterCode] = useState('');
 
-    // Subscribe vào phase repository (Observer Pattern)
-    useEffect(() => {
-        const fetchSemesters = async () => {
-            try {
-                const semesters = await apiClient.get<SemesterInfo[]>('/semesters');
-                setSemestersList(semesters);
-                if (semesters.length > 0) {
-                    const maxId = Math.max(...semesters.map(s => s.id));
-                    setSelectedClassSemesterId(maxId);
-                }
-            } catch (error) {
-                logMessage('ERROR', 'Failed to fetch semesters', error);
-                setSemestersList([]);
+    const fetchSemesters = async () => {
+        try {
+            const semesters = await apiClient.get<SemesterInfo[]>('/semesters');
+            setSemestersList(semesters);
+            if (semesters.length > 0) {
+                const maxId = Math.max(...semesters.map(s => s.id));
+                setSelectedClassSemesterId(maxId);
             }
-        };
+        } catch (error) {
+            logMessage('ERROR', 'Failed to fetch semesters', error);
+            setSemestersList([]);
+        }
+    };
+
+    useEffect(() => {
         fetchSemesters();
 
         const unsubscribe = phaseRepository.subscribe(updatedPhases => {
@@ -86,7 +90,24 @@ export const useAdminDashboardViewModel = (
         return () => {
             unsubscribe();
         };
-    }, [phaseRepository]);
+    }, []); // Chỉ chạy 1 lần khi mount vì phaseRepository là singleton bên ngoài hook
+
+    const handleCreateSemester = async () => {
+        if (!newSemesterCode || newSemesterCode.trim() === '') {
+            Alert.alert('Lỗi', 'Vui lòng nhập mã kỳ');
+            return;
+        }
+        try {
+            await apiClient.post('/semesters', { semester: newSemesterCode.trim() });
+            Alert.alert('Thành công', 'Thêm kỳ mới thành công');
+            setCreateSemesterModalOpen(false);
+            setNewSemesterCode('');
+            await fetchSemesters(); // Refresh list
+        } catch (error: any) {
+            const msg = error.response?.data?.message || error.message || 'Lỗi thêm kỳ';
+            Alert.alert('Lỗi', msg);
+        }
+    };
 
     // Fetch lớp học khi đổi selectedClassSemesterId
     const fetchClasses = async (semId: number) => {
@@ -288,6 +309,11 @@ export const useAdminDashboardViewModel = (
         handleSavePhase,
         handleEditPhase,
         handleDeletePhase,
-        handleCancelEdit
+        handleCancelEdit,
+        isCreateSemesterModalOpen,
+        setCreateSemesterModalOpen,
+        newSemesterCode,
+        setNewSemesterCode,
+        handleCreateSemester
     };
 };

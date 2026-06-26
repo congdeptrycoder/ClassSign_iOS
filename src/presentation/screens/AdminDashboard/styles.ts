@@ -18,7 +18,7 @@ export const createAdminStyles = (colors: ThemeColors) =>
         },
         // ── Warning ─────────────────────────────────────────────────────
         warningText: {
-            color: '#83b13e',
+            color: colors.warningText,
             fontSize: 16,
             fontWeight: 'bold',
             textAlign: 'center',
@@ -137,19 +137,19 @@ export const createAdminStyles = (colors: ThemeColors) =>
             alignItems: 'center',
         },
         detailBtn: {
-            backgroundColor: '#337ab7',
+            backgroundColor: colors.btnDetail,
             paddingHorizontal: 8,
             paddingVertical: 4,
             borderRadius: 4,
         },
         editBtn: {
-            backgroundColor: '#f0ad4e',
+            backgroundColor: colors.btnEdit,
             paddingHorizontal: 8,
             paddingVertical: 4,
             borderRadius: 4,
         },
         deleteBtn: {
-            backgroundColor: '#d9534f',
+            backgroundColor: colors.btnDelete,
             paddingHorizontal: 8,
             paddingVertical: 4,
             borderRadius: 4,
@@ -257,7 +257,7 @@ export const createAdminStyles = (colors: ThemeColors) =>
         },
         cancelPhaseBtn: {
             flex: 1,
-            backgroundColor: '#aaaaaa',
+            backgroundColor: colors.btnCancel,
             paddingVertical: 12,
             borderRadius: 4,
             alignItems: 'center',
@@ -279,10 +279,10 @@ export const createAdminStyles = (colors: ThemeColors) =>
             fontWeight: 'bold',
         },
         statusOpen: {
-            color: '#4caf50', // Màu xanh lá cho ĐANG MỞ
+            color: colors.statusSuccess, // Màu xanh lá cho ĐANG MỞ
         },
         statusClosed: {
-            color: '#f44336', // Màu đỏ cho ĐÃ ĐÓNG
+            color: colors.statusDanger, // Màu đỏ cho ĐÃ ĐÓNG
         },
         timeCell: {
             width: 200,

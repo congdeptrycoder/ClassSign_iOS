@@ -72,7 +72,7 @@ export const createLoginStyles = (colors: ThemeColors) =>
         description: {
             fontSize: 14,
             fontStyle: 'italic',
-            color: '#fff',
+            color: colors.textSecondary,
             textAlign: 'center',
             marginBottom: 40,
             fontWeight: '500',
@@ -162,7 +162,7 @@ export const createLoginStyles = (colors: ThemeColors) =>
             fontSize: 13,
             textAlign: 'center',
             marginBottom: 8,
-            backgroundColor: '#FFD700',
+            backgroundColor: colors.statusDanger,
             paddingVertical: 8,
             paddingHorizontal: 12,
             borderRadius: 8,

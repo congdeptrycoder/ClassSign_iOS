@@ -85,6 +85,11 @@ export const AdminDashboardScreen = ({
         handleEditPhase,
         handleDeletePhase,
         handleCancelEdit,
+        isCreateSemesterModalOpen,
+        setCreateSemesterModalOpen,
+        newSemesterCode,
+        setNewSemesterCode,
+        handleCreateSemester,
     } = useAdminDashboardViewModel(onNavigateToEdit, onLogout, isVisible);
 
     const { colors } = useTheme();
@@ -94,21 +99,35 @@ export const AdminDashboardScreen = ({
 
     // Hàm lấy trạng thái giai đoạn
     const getPhaseStatus = (phase: RegistrationPhase) => {
-        return phase.isActive === 1 ? 'ĐANG DIỄN RA' : 'ĐÃ KẾT THÚC';
+        if (phase.isActive === 1) return 'ĐANG DIỄN RA';
+        
+        const now = new Date();
+        // Thay khoảng trắng bằng 'T' nếu định dạng là YYYY-MM-DD HH:mm
+        const startDate = new Date(phase.startTime.replace(' ', 'T'));
+        const endDate = new Date(phase.endTime.replace(' ', 'T'));
+        
+        if (now > endDate) {
+            return 'ĐÃ KẾT THÚC';
+        } else if (now < startDate) {
+            return 'CHƯA DIỄN RA';
+        }
+        
+        return 'CHƯA DIỄN RA';
     };
 
 
     return (
         <SafeAreaView style={styles.container}>
-            <DashboardHeader
-                titleLabel={adminLabel}
-                isProfileOpen={isProfileOpen}
-                toggleProfile={toggleProfile}
-                onLogout={handleLogout}
-            />
+            <View style={{ flex: 1 }}>
+                <DashboardHeader
+                    titleLabel={adminLabel}
+                    isProfileOpen={isProfileOpen}
+                    toggleProfile={toggleProfile}
+                    onLogout={handleLogout}
+                />
 
-            {/* ── Main Scroll Container ─────────────────────────── */}
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                {/* ── Main Scroll Container ─────────────────────────── */}
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                 {/* ── SECTION A: THIẾT LẬP GIAI ĐOẠN ĐĂNG KÝ (MỚI) ─────── */}
                 <Text style={styles.phaseTableTitle}>Thiết lập giai đoạn đăng ký học tập</Text>
@@ -163,7 +182,7 @@ export const AdminDashboardScreen = ({
                             onPress={() => setSemesterModalOpen(true)}
                             testID="phase-semester-input"
                         >
-                            <Text style={{ color: semesterId ? colors.textPrimary : colors.textSecondary }}>
+                            <Text style={{ color: semesterId ? colors.text : colors.textSecondary }}>
                                 {semesterId ? semestersList.find(s => s.id === semesterId)?.semester || semesterId : 'Chọn học kỳ'}
                             </Text>
                         </TouchableOpacity>
@@ -217,6 +236,16 @@ export const AdminDashboardScreen = ({
                             </TouchableOpacity>
                         )}
                     </View>
+                    
+                    {/* Nút Thêm Kỳ Mới */}
+                    <TouchableOpacity
+                        style={[styles.savePhaseBtn, { marginTop: 12, backgroundColor: colors.statusSuccess }]}
+                        onPress={() => setCreateSemesterModalOpen(true)}
+                    >
+                        <Text style={styles.savePhaseBtnText}>
+                            Thêm kỳ mới
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Bảng Danh sách các thiết lập hiện tại */}
@@ -306,7 +335,7 @@ export const AdminDashboardScreen = ({
                         style={[styles.phaseTextInput, { width: 120, padding: 8, marginTop: 0, justifyContent: 'center' }]}
                         onPress={() => setClassSemesterModalOpen(true)}
                     >
-                        <Text style={{ color: selectedClassSemesterId ? colors.textPrimary : colors.textSecondary, textAlign: 'center' }}>
+                        <Text style={{ color: selectedClassSemesterId ? colors.text : colors.textSecondary, textAlign: 'center' }}>
                             {selectedClassSemesterId ? semestersList.find(s => s.id === selectedClassSemesterId)?.semester || selectedClassSemesterId : 'Chọn kỳ'}
                         </Text>
                     </TouchableOpacity>
@@ -425,6 +454,40 @@ export const AdminDashboardScreen = ({
                     </View>
                 </TouchableOpacity>
             </Modal>
+            {/* Modal Thêm Học kỳ mới */}
+            <Modal visible={isCreateSemesterModalOpen} transparent animationType="fade">
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    onPress={() => setCreateSemesterModalOpen(false)}
+                    activeOpacity={1}
+                >
+                    <View style={[styles.modalContent, { padding: 20 }]}>
+                        <Text style={[styles.phaseTableTitle, { textAlign: 'center' }]}>Thêm Kỳ Mới</Text>
+                        <TextInput
+                            style={[styles.phaseTextInput, { marginBottom: 16 }]}
+                            placeholder="Nhập mã kỳ (VD: 20261)"
+                            placeholderTextColor={colors.textSecondary}
+                            value={newSemesterCode}
+                            onChangeText={setNewSemesterCode}
+                        />
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+                            <TouchableOpacity
+                                style={[styles.cancelPhaseBtn, { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }]}
+                                onPress={() => setCreateSemesterModalOpen(false)}
+                            >
+                                <Text style={styles.cancelPhaseBtnText}>Hủy</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.savePhaseBtn, { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }]}
+                                onPress={handleCreateSemester}
+                            >
+                                <Text style={styles.savePhaseBtnText}>Lưu</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+            </View>
         </SafeAreaView>
     );
 };

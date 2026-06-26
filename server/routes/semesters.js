@@ -21,4 +21,25 @@ router.get('/', (_req, res) => {
     }
 });
 
+router.post('/', (req, res) => {
+    try {
+        const { semester } = req.body;
+        if (!semester || typeof semester !== 'string') {
+            return sendError(res, 400, 'Mã kỳ không hợp lệ.');
+        }
+
+        const db = getDb();
+        db.prepare('INSERT INTO semesters (semester, is_active) VALUES (?, 0)').run(semester.trim());
+
+        logger.info(`Đã thêm học kỳ mới: ${semester}`);
+        return sendSuccess(res, { message: 'Thêm kỳ thành công' }, 201);
+    } catch (err) {
+        logger.error('Lỗi khi thêm học kỳ', { error: err.message });
+        if (err.message.includes('UNIQUE constraint failed')) {
+            return sendError(res, 400, 'Học kỳ này đã tồn tại.');
+        }
+        return sendError(res, 500, 'Lỗi server khi thêm học kỳ.');
+    }
+});
+
 module.exports = router;

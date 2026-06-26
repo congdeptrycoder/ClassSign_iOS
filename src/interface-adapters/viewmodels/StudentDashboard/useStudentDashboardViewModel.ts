@@ -102,6 +102,7 @@ export const useStudentDashboardViewModel = (
     const [activePhase, setActivePhase] = useState<RegistrationPhase | null>(null);
     const [registeredSubjects, setRegisteredSubjects] = useState<RegisteredSubject[]>([]);
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+    const [curriculumCourses, setCurriculumCourses] = useState<CurriculumCourse[]>([]);
     const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
     const [isSuggestionVisible, setIsSuggestionVisible] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
@@ -139,9 +140,10 @@ export const useStudentDashboardViewModel = (
     };
 
     const reloadStudentData = async () => {
-        const [response, timetable] = await Promise.all([
+        const [response, timetable, curriculum] = await Promise.all([
             registrationUseCase.getRegisteredCourses(studentId),
             registrationUseCase.getTimetable(studentId),
+            registrationUseCase.getCurriculum(studentId),
         ]);
 
         const registeredCourses = response.courses;
@@ -164,6 +166,7 @@ export const useStudentDashboardViewModel = (
         );
         setRegisteredClasses(timetable);
         setTimeGridEvents(parseTimetableEvents(timetable));
+        setCurriculumCourses(curriculum.courses);
     };
 
     useEffect(() => {
@@ -184,8 +187,8 @@ export const useStudentDashboardViewModel = (
     }, [studentId]);
 
     useEffect(() => {
-        const query = searchQuery.trim();
-        if (!activePhase) {
+        const query = searchQuery.trim().toLowerCase();
+        if (!activePhase || activePhase.type !== 'course') {
             setSuggestions([]);
             setSelectedSuggestion(null);
             setIsSearching(false);
@@ -197,29 +200,16 @@ export const useStudentDashboardViewModel = (
             setIsSearching(true);
             setSearchError(null);
 
-            const request =
-                activePhase.type === 'course'
-                    ? registrationUseCase.searchCourseSuggestions(studentId, query)
-                    : registrationUseCase.searchClassSuggestions(studentId, query);
+            const filtered = curriculumCourses.filter(course =>
+                !query || course.code.toLowerCase().includes(query) || course.name.toLowerCase().includes(query)
+            ).slice(0, 10);
 
-            request
-                .then(setSuggestions)
-                .catch(error => {
-                    logMessage('ERROR', 'Không thể tải gợi ý đăng ký', error);
-                    setSearchError(
-                        error instanceof Error
-                            ? error.message
-                            : 'Không thể tải gợi ý đăng ký.'
-                    );
-                    setSuggestions([]);
-                })
-                .finally(() => {
-                    setIsSearching(false);
-                });
+            setSuggestions(filtered);
+            setIsSearching(false);
         }, 250);
 
         return () => clearTimeout(timeout);
-    }, [activePhase, searchQuery, studentId]);
+    }, [activePhase, searchQuery, curriculumCourses]);
 
     const toggleUserInfo = () => {
         setIsUserInfoVisible(currentValue => !currentValue);

@@ -55,14 +55,14 @@ export const createAdminClassFormStyles = (colors: ThemeColors) =>
             color: colors.inputText,
         },
         saveBtn: {
-            backgroundColor: '#5cb85c',
+            backgroundColor: colors.buttonPrimary,
             padding: 16,
             borderRadius: 8,
             alignItems: 'center',
             marginTop: 20,
         },
         saveBtnText: {
-            color: '#fff',
+            color: colors.buttonPrimaryText,
             fontWeight: 'bold',
             fontSize: 16,
         },

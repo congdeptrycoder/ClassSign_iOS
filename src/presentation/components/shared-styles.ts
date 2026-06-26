@@ -162,4 +162,13 @@ export const sharedStyles = createSharedStyles({
     loginGradient: ['#8B0000', '#FF4D4D'],
     themeToggleBackground: 'rgba(255,255,255,0.25)',
     themeToggleText: '#FFFFFF',
+    statusSuccess: '#4caf50',
+    statusDanger: '#f44336',
+    statusWarning: '#ff9800',
+    statusInfo: '#2196F3',
+    btnDetail: '#337ab7',
+    btnEdit: '#f0ad4e',
+    btnDelete: '#d9534f',
+    btnCancel: '#aaaaaa',
+    warningText: '#83b13e',
 });

@@ -85,22 +85,22 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
     // Interpolate animation values thành màu viền và nền
     const usernameBorderColor = usernameColorAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [colors.inputBorder, '#8ffa1d'], // từ màu ban đầu sang xanh lá
+        outputRange: [colors.inputBorder, colors.statusSuccess], // từ màu ban đầu sang xanh lá
     });
 
     const passwordBorderColor = passwordColorAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [colors.inputBorder, '#8ffa1d'], // từ màu ban đầu sang xanh lá
+        outputRange: [colors.inputBorder, colors.statusSuccess], // từ màu ban đầu sang xanh lá
     });
 
     const usernameBackgroundColor = usernameBackgroundAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [colors.inputBackground, '#6faa45'], // từ màu ban đầu sang xanh lá cây nhạt
+        outputRange: [colors.inputBackground, colors.statusSuccess], // từ màu ban đầu sang xanh lá cây nhạt
     });
 
     const passwordBackgroundColor = passwordBackgroundAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [colors.inputBackground, '#6faa45'], // từ màu ban đầu sang xanh lá cây nhạt
+        outputRange: [colors.inputBackground, colors.statusSuccess], // từ màu ban đầu sang xanh lá cây nhạt
     });
 
     const handlePressLogin = () => {
@@ -219,7 +219,7 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color={colors.buttonSecondaryText} />
                             ) : (
                                 <Text style={styles.loginButtonText}>Đăng nhập</Text>
                             )}

@@ -71,17 +71,17 @@ export const createStudentStyles = (colors: ThemeColors) =>
             overflow: 'hidden',
         },
         phaseBadgeOpen: {
-            backgroundColor: '#E8F5EE',
-            color: '#087443',
+            backgroundColor: colors.statusSuccess,
+            color: '#fff',
         },
         phaseBadgeClosed: {
-            backgroundColor: '#FFF1F0',
-            color: '#B42318',
+            backgroundColor: colors.statusDanger,
+            color: '#fff',
         },
         whatTimeIsIt: {
             fontSize: 16,
             fontWeight: 'bold',
-            color: '#8dca1a',
+            color: colors.warningText,
             textAlign: 'center',
             marginVertical: 15,
         },
@@ -347,11 +347,11 @@ export const createStudentStyles = (colors: ThemeColors) =>
             backgroundColor: colors.background,
         },
         gridCellActive: {
-            backgroundColor: '#E6F3FF',
+            backgroundColor: colors.surface,
         },
         gridEventText: {
             fontSize: 10,
-            color: '#0055A4',
+            color: colors.text,
             textAlign: 'center',
             padding: 2,
         },
@@ -495,7 +495,7 @@ export const createStudentStyles = (colors: ThemeColors) =>
             fontSize: 14,
         },
         suggestionErrorText: {
-            color: '#B42318',
+            color: colors.statusDanger,
             padding: 12,
             fontSize: 14,
         },
@@ -510,24 +510,24 @@ export const createStudentStyles = (colors: ThemeColors) =>
             fontWeight: 'bold',
         },
         statusCompleted: {
-            backgroundColor: '#E8F5EE',
-            color: '#087443',
+            backgroundColor: colors.statusSuccess,
+            color: '#fff',
         },
         statusUnlearned: {
-            backgroundColor: '#F2F4F7',
-            color: '#667085',
+            backgroundColor: colors.surface,
+            color: colors.textSecondary,
         },
         statusRegistered: {
-            backgroundColor: '#EDF4FF',
-            color: '#175CD3',
+            backgroundColor: colors.statusInfo,
+            color: '#fff',
         },
         statusAvailable: {
-            backgroundColor: '#FFF7E6',
-            color: '#B54708',
+            backgroundColor: colors.statusWarning,
+            color: '#fff',
         },
         statusBlocked: {
-            backgroundColor: '#FFF1F0',
-            color: '#B42318',
+            backgroundColor: colors.statusDanger,
+            color: '#fff',
         },
         // ── Trạng thái đóng đăng ký (No active phase notice) ─────────────────────────
         noPhaseContainer: {
