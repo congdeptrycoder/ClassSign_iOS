@@ -9,6 +9,7 @@ interface LoginResponseData {
         name: string;
         role: 'admin' | 'student' | 'lecturer';
         id_card?: string | null;
+        status?: string;
     };
 }
 
@@ -20,13 +21,14 @@ export class AccountRepositoryImpl implements IAccountRepository {
                 password,
             });
 
-            return {
-                id: user.id,
-                username: user.username,
-                name: user.name,
-                role: user.role,
-                id_card: user.id_card,
-            };
+            return new Account(
+                user.id,
+                user.username,
+                user.name,
+                user.role,
+                user.id_card || null,
+                user.status || 'study'
+            );
         } catch (err) {
             if (err instanceof Error) throw err;
             throw new Error('Unknown login error.');

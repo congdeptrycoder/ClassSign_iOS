@@ -2,6 +2,8 @@ import { CourseRegistrationRepositoryImpl } from '../infrastructure/repositories
 import { ClassRegistrationRepositoryImpl } from '../infrastructure/repositories/ClassRegistrationRepositoryImpl';
 import { TimetableRepositoryImpl } from '../infrastructure/repositories/TimetableRepositoryImpl';
 import { RegistrationPhaseRepositoryImpl } from '../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
+import { IRegistrationPhaseObservable } from '../application/interfaces/IRegistrationPhaseObservable';
+import { appEventBus } from './shared.di';
 
 import { GetCurriculumUseCase } from '../application/use-cases/GetCurriculumUseCase';
 import { GetRegisteredCoursesUseCase } from '../application/use-cases/GetRegisteredCoursesUseCase';
@@ -26,11 +28,14 @@ const classRegistrationRepo = new ClassRegistrationRepositoryImpl();
 const timetableRepo = new TimetableRepositoryImpl();
 
 /**
- * Singleton instance của RegistrationPhaseRepositoryImpl được export từ DI.
- * ViewModel import từ đây thay vì import trực tiếp từ infrastructure layer
- * để tuân thủ DIP (không phụ thuộc concrete class từ tầng dưới).
+ * Singleton instance của RegistrationPhaseRepositoryImpl — được export theo
+ * IRegistrationPhaseObservable interface để ViewModel không phụ thuộc Impl.
  */
-export const registrationPhaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
+export const registrationPhaseRepository: IRegistrationPhaseObservable =
+  RegistrationPhaseRepositoryImpl.getInstance();
+
+/** Singleton EventBus dùng chung — import từ đây thay vì shared/utils */
+export { appEventBus };
 
 // ── Use Cases — Course ────────────────────────────────────────────────────────
 const getCurriculumUseCase = new GetCurriculumUseCase(courseRegistrationRepo);

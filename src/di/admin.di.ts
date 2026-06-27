@@ -1,6 +1,8 @@
 import { RegistrationPhaseRepositoryImpl } from '../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
 import { AdminRepositoryImpl } from '../infrastructure/repositories/AdminRepositoryImpl';
 import { SemesterRepositoryImpl } from '../infrastructure/repositories/SemesterRepositoryImpl';
+import { IRegistrationPhaseObservable } from '../application/interfaces/IRegistrationPhaseObservable';
+import { appEventBus } from './shared.di';
 
 import { GetRegistrationPhasesUseCase } from '../application/use-cases/GetRegistrationPhasesUseCase';
 import { AddRegistrationPhaseUseCase } from '../application/use-cases/AddRegistrationPhaseUseCase';
@@ -21,6 +23,15 @@ import { RegistrationPhaseController } from '../interface-adapters/controllers/R
 const registrationPhaseRepo = RegistrationPhaseRepositoryImpl.getInstance();
 const adminRepo = new AdminRepositoryImpl();
 const semesterRepo = new SemesterRepositoryImpl();
+
+/**
+ * Export Observable (bukan Repository) để ViewModel subscribe vào changes.
+ * Type là IRegistrationPhaseObservable (interface) — không expose Impl.
+ */
+export const registrationPhaseObservable: IRegistrationPhaseObservable = registrationPhaseRepo;
+
+/** Singleton EventBus dùng chung — import từ đây thay vì shared/utils */
+export { appEventBus };
 
 // ── Use Cases — Registration Phase ───────────────────────────────────────────
 const getRegistrationPhasesUseCase = new GetRegistrationPhasesUseCase(registrationPhaseRepo);

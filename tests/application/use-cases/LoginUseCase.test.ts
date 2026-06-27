@@ -2,12 +2,12 @@ import { LoginUseCase } from '../../../src/application/use-cases/LoginUseCase';
 import { IAccountRepository } from '../../../src/domain/repositories/IAccountRepository';
 import { Account } from '../../../src/domain/entities/Account';
 
-const mockAccount: Account = {
-    id: 1,
-    username: 'admin',
-    name: 'Administrator',
-    role: 'admin',
-};
+const mockAccount: Account = new Account(
+    1,
+    'admin',
+    'Administrator',
+    'admin'
+);
 
 const mockRepository: IAccountRepository = {
     login: jest.fn(),

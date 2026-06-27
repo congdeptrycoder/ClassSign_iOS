@@ -1,14 +1,16 @@
 import { Alert } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
-import { RegistrationPhaseRepositoryImpl } from '../../../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
-import { registrationPhaseController, getSemestersUseCase, createSemesterUseCase, getAllClassesUseCase } from '../../../di/admin.di';
+import {
+  registrationPhaseController,
+  getSemestersUseCase,
+  createSemesterUseCase,
+  getAllClassesUseCase,
+  registrationPhaseObservable,
+} from '../../../di/admin.di';
 import { logMessage } from '../../../shared/utils/logger';
 import { FilterTableByColumn } from '../../../shared/utils/FilterTableByColumn';
 import { Semester } from '../../../domain/entities/Semester';
-
-// Khởi tạo ngoài hook để tránh tạo lại mỗi lần render (tránh race condition)
-const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
 
 export interface SemesterInfo {
     id: number;
@@ -87,7 +89,7 @@ export const useAdminDashboardViewModel = (
     useEffect(() => {
         fetchSemesters();
 
-        const unsubscribe = phaseRepository.subscribe(updatedPhases => {
+    const unsubscribe = registrationPhaseObservable.subscribe(updatedPhases => {
             setPhases(updatedPhases);
         });
         return () => {

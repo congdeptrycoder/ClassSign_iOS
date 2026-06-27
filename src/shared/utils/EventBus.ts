@@ -1,30 +1,23 @@
-type EventHandler = (data?: any) => void;
+/**
+ * EventBus.ts — Shared Utils (Re-export shim)
+ *
+ * File này chỉ giữ lại để tương thích ngược trong quá trình migration.
+ * Source of truth đã chuyển sang:
+ *   - Interface: src/application/interfaces/IEventBus.ts
+ *   - Implementation: src/infrastructure/services/EventBusImpl.ts
+ *   - Singleton: inject qua src/di/student.di.ts và src/di/admin.di.ts
+ *
+ * @deprecated Import trực tiếp từ di/ thay vì từ file này.
+ */
 
-class EventBus {
-  private events: { [key: string]: EventHandler[] } = {};
+export { appEventBus as FrontendEventBus } from '../../di/shared.di';
+export type { AppEvents } from '../../application/interfaces/IEventBus';
 
-  on(event: string, handler: EventHandler) {
-    if (!this.events[event]) {
-      this.events[event] = [];
-    }
-    this.events[event].push(handler);
-  }
-
-  off(event: string, handler: EventHandler) {
-    if (!this.events[event]) return;
-    this.events[event] = this.events[event].filter(h => h !== handler);
-  }
-
-  emit(event: string, data?: any) {
-    if (!this.events[event]) return;
-    this.events[event].forEach(handler => handler(data));
-  }
-}
-
-export const FrontendEventBus = new EventBus();
-
+/**
+ * Danh sách tên event (type-safe, không còn dùng string cứng).
+ * Chỉ gồm các event ĐANG ĐƯỢC DÙNG THỰC TẾ.
+ */
 export const FRONTEND_EVENTS = {
   CLASS_SLOTS_CHANGED: 'CLASS_SLOTS_CHANGED',
   TIMETABLE_CHANGED: 'TIMETABLE_CHANGED',
-  REGISTRATION_PHASE_CHANGED: 'REGISTRATION_PHASE_CHANGED',
-};
+} as const satisfies Record<string, keyof AppEvents>;

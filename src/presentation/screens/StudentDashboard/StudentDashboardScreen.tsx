@@ -9,11 +9,11 @@ import {
     View,
 } from 'react-native';
 import { Account } from '../../../domain/entities/Account';
-import {
-    RegisteredSubject,
-    TimeEvent,
-    useStudentDashboardViewModel,
-} from '../../../interface-adapters/viewmodels/StudentDashboard/useStudentDashboardViewModel';
+import { TimeEvent } from '../../../shared/utils/timetableUtils';
+import { useRegistrationPeriodViewModel } from '../../../interface-adapters/viewmodels/StudentDashboard/useRegistrationPeriodViewModel';
+import { useTimetableViewModel } from '../../../interface-adapters/viewmodels/StudentDashboard/useTimetableViewModel';
+import { useCourseRegistrationViewModel, RegisteredSubjectData } from '../../../interface-adapters/viewmodels/StudentDashboard/useCourseRegistrationViewModel';
+import { useClassRegistrationViewModel } from '../../../interface-adapters/viewmodels/StudentDashboard/useClassRegistrationViewModel';
 import { AlarmOneChoose } from '../../components/alarm_one_choose';
 import { AlarmTwoChoose } from '../../components/alarm_two_choose';
 import { DashboardHeader } from '../../components/DashboardHeader/DashboardHeader';
@@ -35,41 +35,62 @@ export const StudentDashboardScreen = ({
     onViewCurriculum,
     account,
 }: StudentDashboardScreenProps) => {
+    const studentId = account?.id ?? 1;
+
+    // ViewModels (Observer Pattern)
+    const { activePhase } = useRegistrationPeriodViewModel();
+    const { registeredClasses, timeGridEvents } = useTimetableViewModel(studentId);
+
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [popupConfig, setPopupConfig] = React.useState<{ visible: boolean; message: string; buttonText: string } | null>(null);
+    const closePopup = () => setPopupConfig(null);
+
     const {
-        isUserInfoVisible,
-        toggleUserInfo,
-        searchQuery,
-        setSearchQuery,
-        isSuggestionVisible,
-        setIsSuggestionVisible,
-        isSearching,
-        searchError,
-        handleRegisterSubject,
-        handleViewCurriculum,
-        handleLogout,
+        searchQueryCourse: searchQuery,
+        setSearchQueryCourse: setSearchQuery,
+        isSuggestionVisibleCourse: isSuggestionVisible,
+        setIsSuggestionVisibleCourse: setIsSuggestionVisible,
+        isSearchingCourse: isSearching,
+        searchErrorCourse: searchError,
+        suggestionsCourse: allowedSuggestions,
+        handleSelectSuggestionCourse: handleSelectSuggestion,
+        handleRegisterCourse: handleRegisterSubject,
         registeredSubjects,
-        timeGridEvents,
-        activePhase,
-        allowedSuggestions,
-        handleSelectSuggestion,
-        isSubmitting,
-        popupConfig,
-        closePopup,
+        studentStatus,
         deletePopupConfig,
-        closeDeletePopup,
         handleRequestDeleteCourse,
         handleConfirmDeleteCourse,
-        currentSemesterName,
-        studentStatus,
+        closeDeletePopup,
         totalCredits,
+    } = useCourseRegistrationViewModel(
+        account || new Account(studentId, '', '', 'student'), 
+        activePhase?.type,
+        setIsSubmitting,
+        setPopupConfig
+    );
+
+    const {
         expandedCourseIds,
         courseClassesData,
         isLoadingClasses,
         toggleCourseExpansion,
         handleRegisterClassSection,
-        registeredClasses,
         handleCancelClassSection,
-    } = useStudentDashboardViewModel(onLogout, account?.id ?? 1, onViewCurriculum);
+    } = useClassRegistrationViewModel(studentId, setIsSubmitting);
+
+    const [isUserInfoVisible, setIsUserInfoVisible] = React.useState(false);
+    const toggleUserInfo = () => setIsUserInfoVisible(current => !current);
+
+    const handleLogout = () => {
+        setIsUserInfoVisible(false);
+        onLogout();
+    };
+
+    const handleViewCurriculum = () => {
+        onViewCurriculum?.();
+    };
+
+    const currentSemesterName = registeredSubjects.length > 0 ? registeredSubjects[0].semester : null;
 
     const { colors } = useTheme();
     const styles = createStudentStyles(colors);
@@ -274,7 +295,7 @@ export const StudentDashboardScreen = ({
                                             <Text style={[styles.headerCell, styles.cellCredits]}>Số TC</Text>
                                             {activePhase?.type === 'course' && <Text style={[styles.headerCell, styles.cellAction]}>Thao tác</Text>}
                                         </View>
-                                        {registeredSubjects.map((item: RegisteredSubject) => (
+                                        {registeredSubjects.map((item: RegisteredSubjectData) => (
                                             <View key={item.id}>
                                                 <View style={[styles.tableRow, expandedCourseIds.has(item.courseId) && styles.expandedRow]}>
                                                     {activePhase?.type === 'class' && (
@@ -349,7 +370,7 @@ export const StudentDashboardScreen = ({
                                                                                             {isRegistered ? (
                                                                                                 <TouchableOpacity
                                                                                                     style={[styles.outlineActionButton, { height: 26, paddingHorizontal: 8, paddingVertical: 0, justifyContent: 'center' }]}
-                                                                                                    onPress={() => handleCancelClassSection(cls.id, item.code)}
+                                                                                                    onPress={() => handleCancelClassSection(cls.id, item.code, item.courseId)}
                                                                                                     disabled={isSubmitting}
                                                                                                 >
                                                                                                     <Text style={[styles.outlineActionButtonText, { fontSize: 11 }]}>Huỷ lớp</Text>
@@ -357,7 +378,7 @@ export const StudentDashboardScreen = ({
                                                                                             ) : isAnyClassRegisteredForCourse ? null : (
                                                                                                 <TouchableOpacity
                                                                                                     style={[styles.registerButton, { height: 26, paddingHorizontal: 8, borderRadius: 4 }, (isSubmitting || isBlocked) && styles.registerButtonDisabled]}
-                                                                                                    onPress={() => handleRegisterClassSection(cls.id, item.code)}
+                                                                                                    onPress={() => handleRegisterClassSection(cls.id, item.code, item.courseId)}
                                                                                                     disabled={isSubmitting || isBlocked}
                                                                                                 >
                                                                                                     <Text style={[styles.registerButtonText, { fontSize: 11, color: isBlocked ? colors.textSecondary : colors.surface }]}>
