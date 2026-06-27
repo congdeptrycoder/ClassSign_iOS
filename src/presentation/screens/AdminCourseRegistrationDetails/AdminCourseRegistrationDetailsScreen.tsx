@@ -239,7 +239,7 @@ export const AdminCourseRegistrationDetailsScreen = ({
                                         </View>
 
                                         {loadingClasses ? (
-                                            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
+                                            <ActivityIndicator size="small" color={colors.buttonPrimary} style={{ marginTop: 20 }} />
                                         ) : expandedClasses.length === 0 ? (
                                             <Text style={[styles.emptyText, { marginVertical: 20 }]}>Chưa có lớp học nào</Text>
                                         ) : (

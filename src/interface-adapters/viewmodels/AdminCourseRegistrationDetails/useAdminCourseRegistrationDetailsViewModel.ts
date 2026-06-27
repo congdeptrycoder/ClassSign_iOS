@@ -1,14 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { CourseRegistrationStat } from '../../../domain/entities/CourseRegistrationStat';
-import { AdminRepositoryImpl } from '../../../infrastructure/repositories/AdminRepositoryImpl';
-import { GetCourseRegistrationStatsUseCase } from '../../../application/use-cases/GetCourseRegistrationStatsUseCase';
-import { GetClassesByCourseUseCase } from '../../../application/use-cases/GetClassesByCourseUseCase';
-import { DeleteClassCourseUseCase } from '../../../application/use-cases/DeleteClassCourseUseCase';
+import {
+    getCourseRegistrationStatsUseCase,
+    getClassesByCourseUseCase,
+    deleteClassCourseUseCase,
+} from '../../../di/admin.di';
 import { Alert } from 'react-native';
 
 /**
  * useAdminCourseRegistrationDetailsViewModel - ViewModel (MVVM)
  * Quản lý state và logic cho màn hình Chi tiết Đăng ký Học phần (Admin).
+ *
+ * Tuân thủ DIP: không tự khởi tạo AdminRepositoryImpl.
+ * Thay vào đó sử dụng các use case đã được inject sẵn từ admin.di.ts.
+ *
+ * Tuân thủ SRP: chỉ quản lý state và điều phối action hiển thị thống kê đăng ký.
  */
 export const useAdminCourseRegistrationDetailsViewModel = (semester: number | null, isVisible: boolean = true) => {
     const [stats, setStats] = useState<CourseRegistrationStat[]>([]);
@@ -28,9 +34,7 @@ export const useAdminCourseRegistrationDetailsViewModel = (semester: number | nu
         setLoading(true);
         setError(null);
         try {
-            const adminRepo = new AdminRepositoryImpl();
-            const useCase = new GetCourseRegistrationStatsUseCase(adminRepo);
-            const data = await useCase.execute(sem);
+            const data = await getCourseRegistrationStatsUseCase.execute(sem);
             setStats(data);
         } catch (err: any) {
             setError(err.message || 'Có lỗi xảy ra khi tải dữ liệu thống kê');
@@ -69,9 +73,7 @@ export const useAdminCourseRegistrationDetailsViewModel = (semester: number | nu
     const loadClasses = async (courseId: number, sem: number) => {
         setLoadingClasses(true);
         try {
-            const adminRepo = new AdminRepositoryImpl();
-            const useCase = new GetClassesByCourseUseCase(adminRepo);
-            const classes = await useCase.execute(courseId, sem);
+            const classes = await getClassesByCourseUseCase.execute(courseId, sem);
             setExpandedClasses(classes);
         } catch (err: any) {
             Alert.alert('Lỗi', err.message || 'Không thể tải danh sách lớp');
@@ -93,13 +95,11 @@ export const useAdminCourseRegistrationDetailsViewModel = (semester: number | nu
 
     const deleteClass = async (classId: number) => {
         try {
-            const adminRepo = new AdminRepositoryImpl();
-            const useCase = new DeleteClassCourseUseCase(adminRepo);
-            await useCase.execute(classId);
-            
+            await deleteClassCourseUseCase.execute(classId);
+
             // Xoá thành công, loại khỏi danh sách hiện tại
             setExpandedClasses(prev => prev.filter(c => c.id !== classId));
-            
+
             Alert.alert('Thành công', 'Đã xoá lớp học');
         } catch (err: any) {
             Alert.alert('Lỗi', err.message || 'Không thể xoá lớp học');

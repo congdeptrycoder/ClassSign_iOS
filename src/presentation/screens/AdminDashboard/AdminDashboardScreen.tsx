@@ -15,6 +15,7 @@ import {
     useAdminDashboardViewModel,
 } from '../../../interface-adapters/viewmodels/AdminDashboard/useAdminDashboardViewModel';
 import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
+import { Account } from '../../../domain/entities/Account';
 import { DashboardHeader } from '../../components/DashboardHeader/DashboardHeader';
 import { useTheme } from '../../components/ThemeContext';
 import { createAdminStyles } from './styles';

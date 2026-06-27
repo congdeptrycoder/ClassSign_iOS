@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { LoginUseCase } from '../../../application/use-cases/LoginUseCase';
-import { loginUseCase as defaultLoginUseCase } from '../../../di/container';
+import { loginUseCase as defaultLoginUseCase } from '../../../di/auth.di';
 import { Account } from '../../../domain/entities/Account';
 
 /**

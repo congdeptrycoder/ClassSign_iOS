@@ -2,14 +2,13 @@ import { Alert } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
 import { RegistrationPhaseRepositoryImpl } from '../../../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
-import { ManageRegistrationPhases } from '../../../application/use-cases/ManageRegistrationPhases';
+import { registrationPhaseController, getSemestersUseCase, createSemesterUseCase, getAllClassesUseCase } from '../../../di/admin.di';
 import { logMessage } from '../../../shared/utils/logger';
-import { apiClient } from '../../../infrastructure/api/apiClient';
 import { FilterTableByColumn } from '../../../shared/utils/FilterTableByColumn';
+import { Semester } from '../../../domain/entities/Semester';
 
 // Khởi tạo ngoài hook để tránh tạo lại mỗi lần render (tránh race condition)
 const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
-const managePhasesUseCase = new ManageRegistrationPhases(phaseRepository);
 
 export interface SemesterInfo {
     id: number;
@@ -56,7 +55,7 @@ export const useAdminDashboardViewModel = (
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
     const [semesterId, setSemesterId] = useState<number | null>(null);
-    const [semestersList, setSemestersList] = useState<SemesterInfo[]>([]);
+    const [semestersList, setSemestersList] = useState<Semester[]>([]);
     const [isSemesterModalOpen, setSemesterModalOpen] = useState(false);
 
     // State cho dropdown chọn học kỳ của bảng lớp học
@@ -67,9 +66,13 @@ export const useAdminDashboardViewModel = (
     const [isCreateSemesterModalOpen, setCreateSemesterModalOpen] = useState(false);
     const [newSemesterCode, setNewSemesterCode] = useState('');
 
+    /**
+     * Lấy danh sách học kỳ qua GetSemestersUseCase — tuân thủ DIP:
+     * không gọi apiClient trực tiếp, thay vào đó đi qua use case và repository interface.
+     */
     const fetchSemesters = async () => {
         try {
-            const semesters = await apiClient.get<SemesterInfo[]>('/semesters');
+            const semesters = await getSemestersUseCase.execute();
             setSemestersList(semesters);
             if (semesters.length > 0) {
                 const maxId = Math.max(...semesters.map(s => s.id));
@@ -92,27 +95,28 @@ export const useAdminDashboardViewModel = (
         };
     }, []); // Chỉ chạy 1 lần khi mount vì phaseRepository là singleton bên ngoài hook
 
+    /**
+     * Tạo học kỳ mới qua CreateSemesterUseCase — tuân thủ DIP.
+     */
     const handleCreateSemester = async () => {
-        if (!newSemesterCode || newSemesterCode.trim() === '') {
-            Alert.alert('Lỗi', 'Vui lòng nhập mã kỳ');
-            return;
-        }
         try {
-            await apiClient.post('/semesters', { semester: newSemesterCode.trim() });
+            await createSemesterUseCase.execute(newSemesterCode);
             Alert.alert('Thành công', 'Thêm kỳ mới thành công');
             setCreateSemesterModalOpen(false);
             setNewSemesterCode('');
-            await fetchSemesters(); // Refresh list
+            await fetchSemesters();
         } catch (error: any) {
-            const msg = error.response?.data?.message || error.message || 'Lỗi thêm kỳ';
+            const msg = error.message || 'Lỗi thêm kỳ';
             Alert.alert('Lỗi', msg);
         }
     };
 
-    // Fetch lớp học khi đổi selectedClassSemesterId
+    /**
+     * Lấy danh sách lớp học qua GetAllClassesUseCase — tuân thủ DIP.
+     */
     const fetchClasses = async (semId: number) => {
         try {
-            const data = await apiClient.get<ClassInfo[]>(`/admin/classes/all?semester=${semId}`);
+            const data = await getAllClassesUseCase.execute(semId);
             setClassesData(data);
         } catch (error) {
             logMessage('ERROR', 'Failed to fetch classes data', error);
@@ -197,7 +201,7 @@ export const useAdminDashboardViewModel = (
         try {
             if (editingPhaseId) {
                 // Update phase
-                await managePhasesUseCase.updatePhase({
+                await registrationPhaseController.updatePhase({
                     id: editingPhaseId,
                     type: phaseType,
                     startTime,
@@ -208,7 +212,7 @@ export const useAdminDashboardViewModel = (
                 Alert.alert('Thành công', 'Đã cập nhật thiết lập giai đoạn đăng ký thành công.');
             } else {
                 // Create phase
-                const newPhase = await managePhasesUseCase.addPhase({
+                const newPhase = await registrationPhaseController.addPhase({
                     type: phaseType,
                     startTime,
                     endTime,
@@ -247,7 +251,7 @@ export const useAdminDashboardViewModel = (
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await managePhasesUseCase.deletePhase(id);
+                            await registrationPhaseController.deletePhase(id);
                             logMessage('INFO', `Đã xoá giai đoạn thành công: ID=${id}`);
                             Alert.alert('Thành công', 'Đã xoá thiết lập giai đoạn đăng ký.');
                             if (editingPhaseId === id) {

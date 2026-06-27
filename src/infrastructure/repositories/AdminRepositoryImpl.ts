@@ -65,4 +65,13 @@ export class AdminRepositoryImpl implements IAdminRepository {
             throw new Error(error.message || 'Lỗi khi cập nhật lớp học.');
         }
     }
+
+    async getAllClasses(semester: number): Promise<any[]> {
+        try {
+            return await apiClient.get<any[]>(`/admin/classes/all?semester=${semester}`);
+        } catch (error: any) {
+            console.error('AdminRepositoryImpl getAllClasses error:', error);
+            throw new Error(error.message || 'Lỗi lấy danh sách lớp học.');
+        }
+    }
 }

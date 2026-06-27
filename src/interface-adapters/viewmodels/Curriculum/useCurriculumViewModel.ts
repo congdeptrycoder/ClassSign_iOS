@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { ManageStudentRegistration } from '../../../application/use-cases/ManageStudentRegistration';
 import {
   Curriculum,
   CurriculumCourse,
 } from '../../../domain/entities/StudentRegistration';
-import { StudentRegistrationRepositoryImpl } from '../../../infrastructure/repositories/StudentRegistrationRepositoryImpl';
+import { courseRegistrationController } from '../../../di/student.di';
 import { logMessage } from '../../../shared/utils/logger';
-
-const registrationUseCase = new ManageStudentRegistration(
-  new StudentRegistrationRepositoryImpl()
-);
 
 export const useCurriculumViewModel = (studentId: number) => {
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
@@ -25,7 +20,7 @@ export const useCurriculumViewModel = (studentId: number) => {
     try {
       setIsLoading(true);
       setError(null);
-      setCurriculum(await registrationUseCase.getCurriculum(studentId));
+      setCurriculum(await courseRegistrationController.getCurriculum(studentId));
     } catch (err: any) {
       const message = err.message || 'Không thể tải chương trình đào tạo.';
       setError(message);
@@ -42,7 +37,7 @@ export const useCurriculumViewModel = (studentId: number) => {
   const handleRegisterCourse = async (course: CurriculumCourse) => {
     try {
       setRegisteringCourseId(course.courseId);
-      const result = await registrationUseCase.registerCourse(studentId, course.courseId);
+      const result = await courseRegistrationController.registerCourse(studentId, course.courseId);
       const message = (result as any)?.message || `Đã đăng ký học phần ${course.code}.`;
       setPopupConfig({
         visible: true,

@@ -10,4 +10,6 @@ export interface IAdminRepository {
     getClassesByCourse(courseId: number, semester: number): Promise<any[]>;
     deleteClassCourse(id: number): Promise<void>;
     updateClassCourse(id: number, data: any): Promise<void>;
+    /** Lấy toàn bộ danh sách lớp học theo học kỳ (dành cho Admin dashboard). */
+    getAllClasses(semester: number): Promise<any[]>;
 }

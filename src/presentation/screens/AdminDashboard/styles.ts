@@ -91,6 +91,13 @@ export const createAdminStyles = (colors: ThemeColors) =>
         tableSection: {
             marginTop: 10,
         },
+        table: {
+            borderWidth: 1,
+            borderColor: colors.tableBorder,
+        },
+        header: {
+            padding: 10,
+        },
         tableRow: {
             flexDirection: 'row',
             borderBottomWidth: 1,

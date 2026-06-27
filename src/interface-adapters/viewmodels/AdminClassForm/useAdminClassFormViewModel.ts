@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import { AdminRepositoryImpl } from '../../../infrastructure/repositories/AdminRepositoryImpl';
-import { CreateClassCourseUseCase } from '../../../application/use-cases/CreateClassCourseUseCase';
-import { UpdateClassCourseUseCase } from '../../../application/use-cases/UpdateClassCourseUseCase';
+import { createClassCourseUseCase, updateClassCourseUseCase } from '../../../di/admin.di';
 import { logMessage } from '../../../shared/utils/logger';
 
 // ── Dữ liệu đầu vào cho mode CREATE ─────────────────────────────────────────
@@ -41,6 +39,14 @@ export type AdminClassFormData = CreateClassFormData | EditClassFormData;
 const safeValue = (value: string | undefined): string =>
     value && value !== 'NULL' ? value : '';
 
+/**
+ * useAdminClassFormViewModel — ViewModel (MVVM)
+ *
+ * Tuân thủ DIP: không tự khởi tạo Repository hay UseCase.
+ * Thay vào đó sử dụng các use case đã được inject từ admin.di.ts.
+ *
+ * Tuân thủ SRP: chỉ quản lý state form và điều phối action tạo/cập nhật lớp học.
+ */
 export const useAdminClassFormViewModel = (
     formData: AdminClassFormData,
     onGoBack: () => void,
@@ -68,12 +74,9 @@ export const useAdminClassFormViewModel = (
             return;
         }
 
-        const repository = new AdminRepositoryImpl();
-
         try {
             if (isEdit) {
                 // ── UPDATE ──────────────────────────────────────────────
-                const useCase = new UpdateClassCourseUseCase(repository);
                 const payload = {
                     ma_lop: maLop,
                     ma_lop_kem: maLopKem || 'NULL',
@@ -87,7 +90,7 @@ export const useAdminClassFormViewModel = (
                     sl_max: slMax,
                     teaching_type: teachingType || 'NULL',
                 };
-                await useCase.execute(editData!.id, payload);
+                await updateClassCourseUseCase.execute(editData!.id, payload);
                 logMessage('INFO', `Cập nhật lớp học thành công: ID=${editData!.id}`);
                 Alert.alert('Thành công', 'Đã cập nhật thông tin lớp học', [
                     { text: 'OK', onPress: onGoBack },
@@ -95,7 +98,6 @@ export const useAdminClassFormViewModel = (
             } else {
                 // ── CREATE ──────────────────────────────────────────────
                 const createData = formData as CreateClassFormData;
-                const useCase = new CreateClassCourseUseCase(repository);
                 const payload = {
                     ky: createData.ky,
                     ma_hp: createData.ma_hp,
@@ -111,7 +113,7 @@ export const useAdminClassFormViewModel = (
                     sl_max: slMax,
                     teaching_type: teachingType || 'NULL',
                 };
-                await useCase.execute(payload);
+                await createClassCourseUseCase.execute(payload);
                 logMessage('INFO', `Tạo lớp học mới thành công: ma_hp=${createData.ma_hp}, ma_lop=${maLop}`);
                 Alert.alert('Thành công', 'Đã tạo lớp học mới', [
                     { text: 'OK', onPress: onGoBack },

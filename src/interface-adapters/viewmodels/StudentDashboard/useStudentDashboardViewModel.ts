@@ -1,16 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { GetActiveRegistrationPhase } from '../../../application/use-cases/GetActiveRegistrationPhase';
-import { ManageStudentRegistration } from '../../../application/use-cases/ManageStudentRegistration';
 import { RegistrationPhase } from '../../../domain/entities/RegistrationPhase';
 import {
     ClassSuggestion,
     CurriculumCourse,
     TimetableEntry,
 } from '../../../domain/entities/StudentRegistration';
-import { RegistrationPhaseRepositoryImpl } from '../../../infrastructure/repositories/RegistrationPhaseRepositoryImpl';
-import { StudentRegistrationRepositoryImpl } from '../../../infrastructure/repositories/StudentRegistrationRepositoryImpl';
+import {
+    courseRegistrationController,
+    classRegistrationController,
+    timetableController,
+    registrationPhaseRepository,
+} from '../../../di/student.di';
+import { StudentStatusStrategyFactory } from '../../../domain/strategies/StudentStatusStrategyFactory';
+import { FrontendEventBus, FRONTEND_EVENTS } from '../../../shared/utils/EventBus';
 import { logMessage } from '../../../shared/utils/logger';
+import { toStatusLabel } from '../../../shared/utils/statusLabelUtils';
+import { parseTimetableEvents, TimeEvent } from '../../../shared/utils/timetableUtils';
 
 export interface RegisteredSubject {
     id: string;
@@ -23,74 +30,9 @@ export interface RegisteredSubject {
     credits: number;
 }
 
-export interface TimeEvent {
-    day: string;
-    period: number;
-    name: string;
-}
+export type { TimeEvent };
 
 type Suggestion = CurriculumCourse | ClassSuggestion;
-
-const registrationUseCase = new ManageStudentRegistration(
-    new StudentRegistrationRepositoryImpl()
-);
-
-function toStatusLabel(status: string) {
-    if (status === 'completed') return 'Đã học';
-    if (status === 'registered') return 'Học phần chưa hoàn thành';
-    if (status === 're_registered') return 'Học cải thiện';
-    if (status === 'cancelled') return 'Đã hủy';
-    return status;
-}
-
-function parseTimetableEvents(entries: TimetableEntry[]): TimeEvent[] {
-    return entries.flatMap(entry => {
-        if (!entry.detail) return [];
-
-        try {
-            const detail = JSON.parse(entry.detail);
-
-            if (detail.thu && detail.tiet_bd && detail.tiet_kt) {
-                const dayStr = `T${detail.thu}`;
-                let start = parseInt(detail.tiet_bd, 10);
-                let end = parseInt(detail.tiet_kt, 10);
-                if (isNaN(start) || isNaN(end)) return [];
-
-                if (detail.buoi === 'Chiều') {
-                    start += 6;
-                    end += 6;
-                }
-
-                const events: TimeEvent[] = [];
-                for (let i = start; i <= end; i++) {
-                    events.push({
-                        day: dayStr,
-                        period: i,
-                        name: entry.code,
-                    });
-                }
-                return events;
-            }
-
-            const slots = Array.isArray(detail) ? detail : detail.slots;
-            if (!Array.isArray(slots)) return [];
-
-            return slots.flatMap((slot: any) => {
-                const periods = Array.isArray(slot.periods)
-                    ? slot.periods
-                    : [slot.period].filter(Boolean);
-
-                return periods.map((period: number) => ({
-                    day: slot.day,
-                    period,
-                    name: entry.code,
-                }));
-            });
-        } catch (_err) {
-            return [];
-        }
-    });
-}
 
 export const useStudentDashboardViewModel = (
     onLogout: () => void,
@@ -131,9 +73,9 @@ export const useStudentDashboardViewModel = (
         if (!deletePopupConfig?.subject) return;
         const { courseId, semester } = deletePopupConfig.subject;
         try {
-            await registrationUseCase.deleteRegisteredCourse(studentId, courseId, semester);
+            await courseRegistrationController.cancelCourseRegistration(studentId, courseId, semester);
             setDeletePopupConfig(null);
-            await reloadStudentData();
+            FrontendEventBus.emit(FRONTEND_EVENTS.TIMETABLE_CHANGED);
         } catch (error: any) {
             Alert.alert('Cảnh báo', error.message || 'Xoá đăng ký thất bại.');
         }
@@ -141,9 +83,9 @@ export const useStudentDashboardViewModel = (
 
     const reloadStudentData = async () => {
         const [response, timetable, curriculum] = await Promise.all([
-            registrationUseCase.getRegisteredCourses(studentId),
-            registrationUseCase.getTimetable(studentId),
-            registrationUseCase.getCurriculum(studentId),
+            courseRegistrationController.getRegisteredCourses(studentId),
+            timetableController.getTimetable(studentId),
+            courseRegistrationController.getCurriculum(studentId),
         ]);
 
         const registeredCourses = response.courses;
@@ -170,9 +112,12 @@ export const useStudentDashboardViewModel = (
     };
 
     useEffect(() => {
-        const phaseRepository = RegistrationPhaseRepositoryImpl.getInstance();
+        /**
+         * Sử dụng registrationPhaseRepository từ student.di.ts thay vì import
+         * RegistrationPhaseRepositoryImpl trực tiếp từ infrastructure — tuân thủ DIP.
+         */
         const getActivePhaseUseCase = new GetActiveRegistrationPhase();
-        const unsubscribe = phaseRepository.subscribe(phases => {
+        const unsubscribe = registrationPhaseRepository.subscribe(phases => {
             setActivePhase(getActivePhaseUseCase.execute(phases));
         });
         return () => {
@@ -184,6 +129,18 @@ export const useStudentDashboardViewModel = (
         reloadStudentData().catch(error => {
             logMessage('ERROR', 'Không thể tải dữ liệu sinh viên', error);
         });
+
+        // Đăng ký EventBus để reload khi có thay đổi
+        const handleTimetableChanged = () => {
+            reloadStudentData().catch(e => logMessage('ERROR', 'EventBus reload failed', e));
+        };
+        FrontendEventBus.on(FRONTEND_EVENTS.TIMETABLE_CHANGED, handleTimetableChanged);
+        FrontendEventBus.on(FRONTEND_EVENTS.CLASS_SLOTS_CHANGED, handleTimetableChanged);
+
+        return () => {
+            FrontendEventBus.off(FRONTEND_EVENTS.TIMETABLE_CHANGED, handleTimetableChanged);
+            FrontendEventBus.off(FRONTEND_EVENTS.CLASS_SLOTS_CHANGED, handleTimetableChanged);
+        };
     }, [studentId]);
 
     useEffect(() => {
@@ -264,9 +221,8 @@ export const useStudentDashboardViewModel = (
         }
 
         if (activePhase.type === 'course') {
-            const maxCredits = studentStatus === 'study_cc1' ? 20 :
-                               studentStatus === 'study_cc2' ? 16 :
-                               studentStatus === 'study_cc3' ? 12 : 24;
+            const strategy = StudentStatusStrategyFactory.getStrategy(studentStatus);
+            const maxCredits = strategy.getMaxAllowedCredits();
             const currentTotalCredits = registeredSubjects.reduce((sum, item) => sum + item.credits, 0);
             const targetCredits = (registerTarget as CurriculumCourse).credits;
 
@@ -284,7 +240,7 @@ export const useStudentDashboardViewModel = (
             setIsSubmitting(true);
 
             if (activePhase.type === 'course') {
-                const result = await registrationUseCase.registerCourse(
+                const result = await courseRegistrationController.registerCourse(
                     studentId,
                     (registerTarget as CurriculumCourse).courseId
                 );
@@ -295,18 +251,19 @@ export const useStudentDashboardViewModel = (
                     buttonText: 'Đóng'
                 });
             } else {
-                await registrationUseCase.registerClass(
+                await classRegistrationController.registerClass(
                     studentId,
                     (registerTarget as ClassSuggestion).id
                 );
                 Alert.alert('Thành công', `Đã đăng ký lớp học phần ${registerTarget.code}.`);
+                FrontendEventBus.emit(FRONTEND_EVENTS.CLASS_SLOTS_CHANGED, { courseId: (registerTarget as ClassSuggestion).courseId });
             }
 
             setSearchQuery('');
             setSuggestions([]);
             setSelectedSuggestion(null);
             setIsSuggestionVisible(false);
-            await reloadStudentData();
+            FrontendEventBus.emit(FRONTEND_EVENTS.TIMETABLE_CHANGED);
         } catch (error: any) {
             if (error.message === 'Bạn không có quyền thực hiện thao tác này. Liên hệ nhà trường để biết thêm thông tin') {
                 setPopupConfig({
@@ -334,7 +291,7 @@ export const useStudentDashboardViewModel = (
             if (!courseClassesData[courseId]) {
                 setIsLoadingClasses(prev => ({ ...prev, [courseId]: true }));
                 try {
-                    const classes = await registrationUseCase.getCourseClasses(studentId, courseId);
+                    const classes = await classRegistrationController.getCourseClasses(studentId, courseId);
                     setCourseClassesData(prev => ({ ...prev, [courseId]: classes }));
                 } catch (error) {
                     logMessage('ERROR', `Failed to load classes for course ${courseId}`, error);
@@ -348,9 +305,9 @@ export const useStudentDashboardViewModel = (
     const handleRegisterClassSection = async (classId: number, courseCode: string) => {
         try {
             setIsSubmitting(true);
-            await registrationUseCase.registerClass(studentId, classId);
+            await classRegistrationController.registerClass(studentId, classId);
             Alert.alert('Thành công', `Đã đăng ký lớp học phần cho học phần ${courseCode}.`);
-            await reloadStudentData();
+            FrontendEventBus.emit(FRONTEND_EVENTS.TIMETABLE_CHANGED);
         } catch (error: any) {
             Alert.alert('Cảnh báo', error.message || 'Đăng ký thất bại.');
         } finally {
@@ -370,9 +327,9 @@ export const useStudentDashboardViewModel = (
                     onPress: async () => {
                         try {
                             setIsSubmitting(true);
-                            await registrationUseCase.cancelClassRegistration(studentId, classId);
+                            await classRegistrationController.cancelClassRegistration(studentId, classId);
                             Alert.alert('Thành công', `Đã huỷ đăng ký lớp học phần ${courseCode}.`);
-                            await reloadStudentData();
+                            FrontendEventBus.emit(FRONTEND_EVENTS.TIMETABLE_CHANGED);
                         } catch (error: any) {
                             Alert.alert('Cảnh báo', error.message || 'Huỷ thất bại.');
                         } finally {
