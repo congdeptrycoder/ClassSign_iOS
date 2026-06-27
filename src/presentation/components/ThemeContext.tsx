@@ -19,7 +19,7 @@ export const lightColors: ThemeColors = {
     surface: '#F8F8F8',
     navBar: '#CC0000',
     text: '#333333',
-    textSecondary: '#666666',
+    textSecondary: '#ffffffff',
     buttonPrimary: '#8B0000',
     buttonPrimaryText: '#FFFFFF',
     buttonSecondary: '#FFD700',
@@ -58,7 +58,7 @@ export const darkColors: ThemeColors = {
     surface: '#16213e',
     navBar: '#0f3460',
     text: '#E0E0E0',
-    textSecondary: '#AAAAAA',
+    textSecondary: '#ffffffff',
     buttonPrimary: '#e94560',
     buttonPrimaryText: '#FFFFFF',
     buttonSecondary: '#f5a623',
@@ -96,7 +96,7 @@ const ThemeContext = createContext<ThemeContextValue>({
     theme: 'light',
     isDark: false,
     colors: lightColors,
-    toggleTheme: () => {},
+    toggleTheme: () => { },
 });
 
 // ─── Provider ──────────────────────────────────────────────────────────────────
