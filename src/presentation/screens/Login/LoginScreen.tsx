@@ -180,7 +180,7 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
                                 value={usernameInput}
                                 onChangeText={setUsernameInput}
                                 autoCapitalize="none"
-                                placeholderTextColor={colors.textSecondary}
+                                placeholderTextColor={!isDark ? '#000000' : colors.textSecondary}
                             />
                         </Animated.View>
 
@@ -201,7 +201,7 @@ export const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry
-                                placeholderTextColor={colors.textSecondary}
+                                placeholderTextColor={!isDark ? '#000000' : colors.textSecondary}
                             />
                         </Animated.View>
 

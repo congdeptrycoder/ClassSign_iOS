@@ -135,6 +135,8 @@ export const StudentDashboardScreen = ({
                 <ScrollView
                     style={styles.contentContainer}
                     showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled={true}
+                    keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.phasePanel}>
                         <Text style={styles.phaseKicker}>Hệ thống đăng ký học tập</Text>
@@ -227,7 +229,7 @@ export const StudentDashboardScreen = ({
                                             )}
                                             {!isSearching && !searchError && allowedSuggestions.length > 0 && (
                                                 <ScrollView
-                                                    nestedScrollEnabled
+                                                    nestedScrollEnabled={true}
                                                     keyboardShouldPersistTaps="handled"
                                                     showsVerticalScrollIndicator={false}
                                                 >

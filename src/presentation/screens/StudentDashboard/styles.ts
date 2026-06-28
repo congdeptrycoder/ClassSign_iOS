@@ -306,7 +306,7 @@ export const createStudentStyles = (colors: ThemeColors) =>
         gridHeaderText: {
             fontWeight: 'bold',
             fontSize: 12,
-            color: colors.tableHeaderText,
+            color: colors.text,
         },
         gridSessionCell: {
             width: 40,
@@ -320,7 +320,7 @@ export const createStudentStyles = (colors: ThemeColors) =>
         gridSessionText: {
             fontSize: 12,
             fontWeight: 'bold',
-            color: colors.textSecondary,
+            color: colors.text,
         },
         gridPeriodCell: {
             width: 50,
@@ -334,7 +334,7 @@ export const createStudentStyles = (colors: ThemeColors) =>
         },
         gridPeriodText: {
             fontSize: 12,
-            color: colors.textSecondary,
+            color: colors.text,
         },
         gridCell: {
             width: gridColumnWidth,
@@ -363,7 +363,7 @@ export const createStudentStyles = (colors: ThemeColors) =>
         },
         gridDividerText: {
             fontSize: 10,
-            color: colors.textSecondary,
+            color: colors.text,
             fontWeight: 'bold',
         },
         bottomSpacer: { height: 40 },
