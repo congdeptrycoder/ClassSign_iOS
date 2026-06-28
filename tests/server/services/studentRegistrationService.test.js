@@ -76,13 +76,19 @@ function createDb() {
             course_id INTEGER,
             detail TEXT,
             total_slots INTEGER,
-            occupied_slots INTEGER
+            occupied_slots INTEGER,
+            semester TEXT
         );
 
         CREATE TABLE student_class_registrations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             student_id INTEGER,
             class_id INTEGER
+        );
+
+        CREATE TABLE semesters (
+            id TEXT PRIMARY KEY,
+            semester TEXT
         );
     `);
 
@@ -151,9 +157,10 @@ function createDb() {
             course_id,
             detail,
             total_slots,
-            occupied_slots
+            occupied_slots,
+            semester
         )
-        VALUES (10, 2, 'Monday 08:00', 30, 0)
+        VALUES (10, 2, 'Monday 08:00', 30, 0, '2026.1')
     `).run();
     db.prepare(`
         INSERT INTO classes_course (
@@ -161,9 +168,10 @@ function createDb() {
             course_id,
             detail,
             total_slots,
-            occupied_slots
+            occupied_slots,
+            semester
         )
-        VALUES (11, 3, 'Tuesday 08:00', 30, 0)
+        VALUES (11, 3, 'Tuesday 08:00', 30, 0, '2026.1')
     `).run();
 
     return db;

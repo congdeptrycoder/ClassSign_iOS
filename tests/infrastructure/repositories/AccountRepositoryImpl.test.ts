@@ -34,6 +34,7 @@ describe('AccountRepositoryImpl', () => {
             name: 'Administrator',
             role: 'admin',
             id_card: 'PDT0030',
+            status: 'study',
         });
         expect(apiClient.post).toHaveBeenCalledWith('/auth/login', {
             username: 'admin',
